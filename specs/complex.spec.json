@@ -1,0 +1,126 @@
+{
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": {},
+            "key": {
+              "segmented": {
+                "separator": ":",
+                "segments": [
+                  {
+                    "weighted": [
+                      {
+                        "weight": 0.5,
+                        "value": "user"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "val": {}
+          }
+        },
+        {
+          "inserts": {
+            "amount": {},
+            "key": {
+              "len": 8,
+              "...": "alphanumeric",
+              "builder": "uniform"
+            },
+            "type": "sampled",
+            "val": {}
+          }
+        },
+        {
+          "inserts": {
+            "amount": {},
+            "key": {
+              "len": 8,
+              "...": "alphanumeric",
+              "builder": "uniform"
+            },
+            "type": "sampled",
+            "val": {}
+          }
+        },
+        {
+          "inserts": {
+            "amount": 1e7,
+            "key": {
+              "weighted": [
+                {
+                  "weight": 0.1,
+                  "value": {
+                    "segmented": {
+                      "separator": ":",
+                      "segments": [
+                        "user",
+                        {
+                          "len": 40,
+                          "character_set": "alphanumeric"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "weight": 0.9,
+                  "value": {
+                    "segmented": {
+                      "separator": ":",
+                      "segments": [
+                        "user",
+                        {
+                          "segmented": {
+                            "separator": "",
+                            "segments": [
+                              {
+                                "len": 2,
+                                "character_set": "alphanumeric",
+                                "distribution": {
+                                  "beta": {
+                                    "alpha": 0.4,
+                                    "beta": 0.5
+                                  }
+                                }
+                              },
+                              {
+                                "len": 38,
+                                "character_set": "alphanumeric",
+                                "distribution": {
+                                  "uniform": {}
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "friend",
+                        {
+                          "len": 40,
+                          "character_set": "alphanumeric"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "type": "sampled",
+            "val": {
+              "len": {
+                "type": "normal",
+                "mean": 40,
+                "std_dev": 10
+              },
+              "...": "alphanumeric"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

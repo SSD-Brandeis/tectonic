@@ -1,0 +1,7 @@
+target/
+**/*.txt
+
+flamegraph.svg
+perf.data*
+
+.idea/

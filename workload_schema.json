@@ -1,0 +1,406 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkloadSpec",
+  "type": "object",
+  "properties": {
+    "sections": {
+      "description": "Sections of a workload where a key from one will (probably) not appear in another.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WorkloadSpecSection"
+      }
+    }
+  },
+  "required": [
+    "sections"
+  ],
+  "$defs": {
+    "Distribution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "uniform"
+            },
+            "max": {
+              "type": "number",
+              "format": "float"
+            },
+            "min": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "min",
+            "max"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "normal"
+            },
+            "mean": {
+              "type": "number",
+              "format": "float"
+            },
+            "std_dev": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "mean",
+            "std_dev"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "exponential"
+            },
+            "lambda": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "lambda"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "beta"
+            },
+            "alpha": {
+              "type": "number",
+              "format": "float"
+            },
+            "beta": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "alpha",
+            "beta"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "zipf"
+            },
+            "n": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "s": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "required": [
+            "type",
+            "n",
+            "s"
+          ]
+        }
+      ]
+    },
+    "EmptyPointDeletes": {
+      "description": "Empty point deletes specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of empty point deletes",
+          "$ref": "#/$defs/Expr"
+        },
+        "key_len": {
+          "description": "Key length",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount",
+        "key_len"
+      ]
+    },
+    "EmptyPointQueries": {
+      "description": "Empty point queries specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of point queries",
+          "$ref": "#/$defs/Expr"
+        },
+        "key_len": {
+          "description": "Key length",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount",
+        "key_len"
+      ]
+    },
+    "Expr": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        {
+          "$ref": "#/$defs/Distribution"
+        }
+      ]
+    },
+    "Inserts": {
+      "description": "Inserts specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of inserts",
+          "$ref": "#/$defs/Expr"
+        },
+        "key_len": {
+          "description": "Key length",
+          "$ref": "#/$defs/Expr"
+        },
+        "val_len": {
+          "description": "Value length",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount",
+        "key_len",
+        "val_len"
+      ]
+    },
+    "KeyDistribution": {
+      "description": "Different selection strategies for keys in a workload.",
+      "type": "string",
+      "enum": [
+        "uniform"
+      ]
+    },
+    "KeySpace": {
+      "type": "string",
+      "enum": [
+        "alphanumeric"
+      ]
+    },
+    "PointDeletes": {
+      "description": "Non-empty point deletes specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of non-empty point deletes",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount"
+      ]
+    },
+    "PointQueries": {
+      "description": "Non-empty point queries specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of point queries",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount"
+      ]
+    },
+    "RangeDeletes": {
+      "description": "Range deletes specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of range deletes",
+          "$ref": "#/$defs/Expr"
+        },
+        "selectivity": {
+          "description": "Selectivity of range deletes. Based off of the range of valid keys, not the full key space.",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount",
+        "selectivity"
+      ]
+    },
+    "RangeQueries": {
+      "description": "Range queries specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of range queries",
+          "$ref": "#/$defs/Expr"
+        },
+        "selectivity": {
+          "description": "Selectivity of range queries. Based off of the range of valid keys, not the full key-space.",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount",
+        "selectivity"
+      ]
+    },
+    "Updates": {
+      "description": "Updates specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of updates",
+          "$ref": "#/$defs/Expr"
+        },
+        "val_len": {
+          "description": "Value length",
+          "$ref": "#/$defs/Expr"
+        }
+      },
+      "required": [
+        "amount",
+        "val_len"
+      ]
+    },
+    "WorkloadSpecGroup": {
+      "type": "object",
+      "properties": {
+        "empty_point_deletes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmptyPointDeletes"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "empty_point_queries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmptyPointQueries"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inserts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Inserts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "point_deletes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointDeletes"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "point_queries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointQueries"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "range_deletes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RangeDeletes"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "range_queries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RangeQueries"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updates": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Updates"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "WorkloadSpecSection": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "description": "A list of groups. Groups share valid keys between operations.\n\nE.g., non-empty point queries will use a key from an insert in this group.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WorkloadSpecGroup"
+          }
+        },
+        "key_distribution": {
+          "description": "The domain from which the keys will be created from.",
+          "$ref": "#/$defs/KeyDistribution"
+        },
+        "key_space": {
+          "description": "The domain from which the keys will be created from.",
+          "$ref": "#/$defs/KeySpace"
+        },
+        "skip_key_contains_check": {
+          "description": "Whether to skip the check that a generated key is in the valid key set for inserts and empty point queries/deletes.\n\nThis is useful when the keyspace is much larger than the number of keys being generated, as it can greatly decrease generation time.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "groups"
+      ]
+    }
+  }
+}
