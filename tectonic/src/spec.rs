@@ -11,6 +11,7 @@ use rand_xoshiro::Xoshiro256Plus;
 use schemars::JsonSchema;
 use schemars::Schema;
 use schemars::SchemaGenerator;
+use statrs::function::gamma::gamma;
 use std::borrow::Cow;
 use std::io::Write;
 // pub trait Evaluate {
@@ -26,9 +27,13 @@ use std::io::Write;
 enum DistributionConfig {
     Uniform { min: f32, max: f32 },
     Normal { mean: f32, std_dev: f32 },
-    Exponential { lambda: f32 },
     Beta { alpha: f32, beta: f32 },
     Zipf { n: usize, s: f32 },
+    Exponential { lambda: f32 },
+    LogNormal { mu: f32, sigma: f32 },
+    Poisson { lambda: f32 },
+    Weibull { scale: f32, shape: f32 },
+    Pareto { scale: f32, shape: f32 },
 }
 
 #[derive(serde::Deserialize, Clone, Debug)]
@@ -64,6 +69,25 @@ pub enum Distribution {
         s: f32,
         distr: rand_distr::Zipf<f32>,
     },
+    LogNormal {
+        mu: f32,
+        sigma: f32,
+        distr: rand_distr::LogNormal<f32>,
+    },
+    Poisson {
+        lambda: f32,
+        distr: rand_distr::Poisson<f32>,
+    },
+    Weibull {
+        scale: f32,
+        shape: f32,
+        distr: rand_distr::Weibull<f32>,
+    },
+    Pareto {
+        scale: f32,
+        shape: f32,
+        distr: rand_distr::Pareto<f32>,
+    },
 }
 
 impl TryFrom<DistributionConfig> for Distribution {
@@ -96,6 +120,31 @@ impl TryFrom<DistributionConfig> for Distribution {
                 s,
                 distr: rand_distr::Zipf::new(n as f32, s)?,
             },
+            DC::LogNormal { mu, sigma } => Self::LogNormal {
+                mu,
+                sigma,
+                distr: rand_distr::LogNormal::new(mu, sigma)?,
+            },
+            DC::Poisson { lambda } => Self::Poisson {
+                lambda,
+                distr: rand_distr::Poisson::new(lambda)?,
+            },
+            DC::Weibull { scale, shape } => {
+                assert!(shape > 0.0);
+                Self::Weibull {
+                    scale,
+                    shape,
+                    distr: rand_distr::Weibull::new(scale, shape)?,
+                }
+            }
+            DC::Pareto { scale, shape } => {
+                assert!(shape > 1.0);
+                Self::Pareto {
+                    scale,
+                    shape,
+                    distr: rand_distr::Pareto::new(scale, shape)?,
+                }
+            }
         };
         return Ok(distr);
     }
@@ -123,20 +172,32 @@ impl Distribution {
             Self::Exponential { distr, .. } => distr.sample(rng),
             Self::Beta { distr, .. } => distr.sample(rng),
             Self::Zipf { distr, .. } => distr.sample(rng),
+            Self::LogNormal { distr, .. } => distr.sample(rng),
+            Self::Poisson { distr, .. } => distr.sample(rng),
+            Self::Weibull { distr, .. } => distr.sample(rng),
+            Self::Pareto { distr, .. } => distr.sample(rng),
         };
     }
 
     fn expected_value(&self) -> f32 {
         return match self {
-            Distribution::Uniform { min, max, .. } => min + max / 2.0,
-            Distribution::Normal { mean, .. } => *mean,
-            Distribution::Exponential { lambda, .. } => 1.0 / lambda,
-            Distribution::Beta { alpha, beta, .. } => alpha / (alpha + beta),
-            Distribution::Zipf { s, n, .. } => {
+            Self::Uniform { min, max, .. } => min + max / 2.0,
+            Self::Normal { mean, .. } => *mean,
+            Self::Exponential { lambda, .. } => 1.0 / lambda,
+            Self::Beta { alpha, beta, .. } => alpha / (alpha + beta),
+            Self::Zipf { s, n, .. } => {
                 let hs = generalized_harmonic(*n, *s);
                 let hs_minus1 = generalized_harmonic(*n, *s - 1.0);
                 return hs_minus1 / hs;
             }
+            Self::LogNormal { mu, sigma, .. } => (mu + 0.5 * sigma.powi(2)).exp(),
+
+            Self::Poisson { lambda, .. } => *lambda,
+
+            Self::Weibull { scale, shape, .. } => {
+                *scale * gamma(1.0 + 1.0 / *shape as f64) as f32
+            }
+            Self::Pareto { scale, shape, .. } => (shape * scale) / (shape - 1.0),
         };
     }
 }
@@ -189,7 +250,7 @@ pub enum StringExprConfig {
     Constant(String),
     Sampled {
         /// The distribution to use for sampling the string.
-        distribution: Distribution,
+        // distribution: Distribution,
         /// The length of the string to sample.
         length: NumberExpr,
         /// The character set to use for sampling the string.
@@ -212,11 +273,12 @@ pub enum StringExprConfig {
 #[serde(try_from = "StringExprConfig")]
 pub enum StringExpr {
     Constant(String),
-    Sampled {
+    Uniform {
         /// The distribution to use for sampling the string.
-        distribution: Distribution,
+        // distribution: Distribution,
         /// The length of the string to sample.
-        length: NumberExpr,
+        len: NumberExpr,
+        #[serde(default = "CharacterSet::default")]
         /// The character set to use for sampling the string.
         character_set: CharacterSet,
     },
@@ -254,12 +316,12 @@ impl TryFrom<StringExprConfig> for StringExpr {
         return match value {
             StringExprConfig::Constant(val) => Ok(Self::Constant(val)),
             StringExprConfig::Sampled {
-                distribution,
+                // distribution,
                 length,
                 character_set,
-            } => Ok(Self::Sampled {
-                distribution,
-                length,
+            } => Ok(Self::Uniform {
+                // distribution,
+                len: length,
                 character_set,
             }),
             StringExprConfig::Weighted(items) => {
@@ -301,9 +363,9 @@ impl StringExpr {
     pub fn generate(&self, rng: &mut impl Rng) -> Key {
         return match self {
             Self::Constant(val) => Key::from(val.as_bytes()),
-            Self::Sampled {
-                distribution: _,
-                length,
+            Self::Uniform {
+                // distribution: _,
+                len: length,
                 character_set,
             } => {
                 let len = length.evaluate(rng) as usize;
@@ -331,7 +393,12 @@ impl StringExpr {
                 }
                 Key::from(buf)
             }
-            Self::HotRange { hot_ranges, probability, length, .. } => {
+            Self::HotRange {
+                hot_ranges,
+                probability,
+                length,
+                ..
+            } => {
                 let is_hot = rng.random_bool(*probability as f64);
                 return if is_hot {
                     let index = rng.random_range(0..hot_ranges.len());
@@ -349,9 +416,9 @@ impl StringExpr {
             Self::Constant(val) => writer
                 .write_all(val.as_bytes())
                 .context("Writing constant string"),
-            Self::Sampled {
-                distribution: _,
-                length,
+            Self::Uniform {
+                // distribution: _,
+                len: length,
                 character_set,
             } => {
                 let len = length.evaluate(rng) as usize;
@@ -363,7 +430,7 @@ impl StringExpr {
                 }
                 return Ok(());
             }
-            Self::Weighted{items, distr} => {
+            Self::Weighted { items, distr } => {
                 let random_value = rng.sample(distr);
                 let item = &items[random_value];
                 return item
@@ -384,8 +451,13 @@ impl StringExpr {
                         .context("Writing separator")?;
                 }
                 return Ok(());
-            },
-            Self::HotRange { hot_ranges, probability, length, .. } => {
+            }
+            Self::HotRange {
+                hot_ranges,
+                probability,
+                length,
+                ..
+            } => {
                 let is_hot = rng.random_bool(*probability as f64);
                 let key = if is_hot {
                     let index = rng.random_range(0..hot_ranges.len());

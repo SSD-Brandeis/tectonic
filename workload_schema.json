@@ -15,112 +15,138 @@
     "sections"
   ],
   "$defs": {
+    "CharacterSet": {
+      "type": "string",
+      "enum": [
+        "alphanumeric"
+      ]
+    },
     "Distribution": {
       "oneOf": [
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "uniform"
-            },
-            "max": {
-              "type": "number",
-              "format": "float"
-            },
-            "min": {
-              "type": "number",
-              "format": "float"
+            "uniform": {
+              "type": "object",
+              "properties": {
+                "max": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "min": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "min",
+                "max"
+              ]
             }
           },
+          "additionalProperties": false,
           "required": [
-            "type",
-            "min",
-            "max"
+            "uniform"
           ]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "normal"
-            },
-            "mean": {
-              "type": "number",
-              "format": "float"
-            },
-            "std_dev": {
-              "type": "number",
-              "format": "float"
+            "normal": {
+              "type": "object",
+              "properties": {
+                "mean": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "std_dev": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "mean",
+                "std_dev"
+              ]
             }
           },
+          "additionalProperties": false,
           "required": [
-            "type",
-            "mean",
-            "std_dev"
+            "normal"
           ]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "exponential"
-            },
-            "lambda": {
-              "type": "number",
-              "format": "float"
+            "exponential": {
+              "type": "object",
+              "properties": {
+                "lambda": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "lambda"
+              ]
             }
           },
+          "additionalProperties": false,
           "required": [
-            "type",
-            "lambda"
+            "exponential"
           ]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "beta"
-            },
-            "alpha": {
-              "type": "number",
-              "format": "float"
-            },
             "beta": {
-              "type": "number",
-              "format": "float"
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "beta": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "alpha",
+                "beta"
+              ]
             }
           },
+          "additionalProperties": false,
           "required": [
-            "type",
-            "alpha",
             "beta"
           ]
         },
         {
           "type": "object",
           "properties": {
-            "type": {
-              "type": "string",
-              "const": "zipf"
-            },
-            "n": {
-              "type": "integer",
-              "format": "uint",
-              "minimum": 0
-            },
-            "s": {
-              "type": "number",
-              "format": "float"
+            "zipf": {
+              "type": "object",
+              "properties": {
+                "n": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                },
+                "s": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "n",
+                "s"
+              ]
             }
           },
+          "additionalProperties": false,
           "required": [
-            "type",
-            "n",
-            "s"
+            "zipf"
           ]
         }
       ]
@@ -131,16 +157,16 @@
       "properties": {
         "amount": {
           "description": "Number of empty point deletes",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         },
-        "key_len": {
-          "description": "Key length",
-          "$ref": "#/$defs/Expr"
+        "key": {
+          "description": "Key",
+          "$ref": "#/$defs/StringExpr"
         }
       },
       "required": [
         "amount",
-        "key_len"
+        "key"
       ]
     },
     "EmptyPointQueries": {
@@ -149,28 +175,16 @@
       "properties": {
         "amount": {
           "description": "Number of point queries",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         },
-        "key_len": {
-          "description": "Key length",
-          "$ref": "#/$defs/Expr"
+        "key": {
+          "description": "Key",
+          "$ref": "#/$defs/StringExpr"
         }
       },
       "required": [
         "amount",
-        "key_len"
-      ]
-    },
-    "Expr": {
-      "anyOf": [
-        {
-          "type": "integer",
-          "format": "uint",
-          "minimum": 0
-        },
-        {
-          "$ref": "#/$defs/Distribution"
-        }
+        "key"
       ]
     },
     "Inserts": {
@@ -179,21 +193,21 @@
       "properties": {
         "amount": {
           "description": "Number of inserts",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         },
-        "key_len": {
-          "description": "Key length",
-          "$ref": "#/$defs/Expr"
+        "key": {
+          "description": "Key",
+          "$ref": "#/$defs/StringExpr"
         },
-        "val_len": {
-          "description": "Value length",
-          "$ref": "#/$defs/Expr"
+        "val": {
+          "description": "Value",
+          "$ref": "#/$defs/StringExpr"
         }
       },
       "required": [
         "amount",
-        "key_len",
-        "val_len"
+        "key",
+        "val"
       ]
     },
     "KeyDistribution": {
@@ -203,10 +217,15 @@
         "uniform"
       ]
     },
-    "KeySpace": {
-      "type": "string",
-      "enum": [
-        "alphanumeric"
+    "NumberExpr": {
+      "anyOf": [
+        {
+          "type": "number",
+          "format": "float"
+        },
+        {
+          "$ref": "#/$defs/Distribution"
+        }
       ]
     },
     "PointDeletes": {
@@ -215,7 +234,7 @@
       "properties": {
         "amount": {
           "description": "Number of non-empty point deletes",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         }
       },
       "required": [
@@ -228,7 +247,7 @@
       "properties": {
         "amount": {
           "description": "Number of point queries",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         }
       },
       "required": [
@@ -241,11 +260,11 @@
       "properties": {
         "amount": {
           "description": "Number of range deletes",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         },
         "selectivity": {
           "description": "Selectivity of range deletes. Based off of the range of valid keys, not the full key space.",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         }
       },
       "required": [
@@ -259,16 +278,134 @@
       "properties": {
         "amount": {
           "description": "Number of range queries",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         },
         "selectivity": {
           "description": "Selectivity of range queries. Based off of the range of valid keys, not the full key-space.",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         }
       },
       "required": [
         "amount",
         "selectivity"
+      ]
+    },
+    "StringExpr": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "constant": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "constant"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "sampled": {
+              "type": "object",
+              "properties": {
+                "character_set": {
+                  "description": "The character set to use for sampling the string.",
+                  "$ref": "#/$defs/CharacterSet"
+                },
+                "length": {
+                  "description": "The distribution to use for sampling the string.\nThe length of the string to sample.",
+                  "$ref": "#/$defs/NumberExpr"
+                }
+              },
+              "required": [
+                "length",
+                "character_set"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "sampled"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "weighted": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Weight"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "weighted"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "segmented": {
+              "type": "object",
+              "properties": {
+                "segments": {
+                  "description": "The segments to use for the string.",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/StringExpr"
+                  }
+                },
+                "separator": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "separator",
+                "segments"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "segmented"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "hot_range": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                },
+                "length": {
+                  "type": "integer",
+                  "format": "uint",
+                  "minimum": 0
+                },
+                "probability": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "length",
+                "count",
+                "probability"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hot_range"
+          ]
+        }
       ]
     },
     "Updates": {
@@ -277,16 +414,34 @@
       "properties": {
         "amount": {
           "description": "Number of updates",
-          "$ref": "#/$defs/Expr"
+          "$ref": "#/$defs/NumberExpr"
         },
-        "val_len": {
-          "description": "Value length",
-          "$ref": "#/$defs/Expr"
+        "val": {
+          "description": "Value",
+          "$ref": "#/$defs/StringExpr"
         }
       },
       "required": [
         "amount",
-        "val_len"
+        "val"
+      ]
+    },
+    "Weight": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "description": "The value of the item.",
+          "$ref": "#/$defs/StringExpr"
+        },
+        "weight": {
+          "description": "The weight of the item.",
+          "type": "number",
+          "format": "float"
+        }
+      },
+      "required": [
+        "weight",
+        "value"
       ]
     },
     "WorkloadSpecGroup": {
@@ -377,6 +532,10 @@
     "WorkloadSpecSection": {
       "type": "object",
       "properties": {
+        "character_set": {
+          "description": "The domain from which the keys will be created from.",
+          "$ref": "#/$defs/CharacterSet"
+        },
         "groups": {
           "description": "A list of groups. Groups share valid keys between operations.\n\nE.g., non-empty point queries will use a key from an insert in this group.",
           "type": "array",
@@ -387,10 +546,6 @@
         "key_distribution": {
           "description": "The domain from which the keys will be created from.",
           "$ref": "#/$defs/KeyDistribution"
-        },
-        "key_space": {
-          "description": "The domain from which the keys will be created from.",
-          "$ref": "#/$defs/KeySpace"
         },
         "skip_key_contains_check": {
           "description": "Whether to skip the check that a generated key is in the valid key set for inserts and empty point queries/deletes.\n\nThis is useful when the keyspace is much larger than the number of keys being generated, as it can greatly decrease generation time.",

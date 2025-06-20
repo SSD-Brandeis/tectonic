@@ -1,0 +1,40 @@
+{
+  "$schema": "../workload_schema.json",
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 100,
+            "key": {
+              "segmented": {
+                "separator": "",
+                "segments": [
+                  {
+                    "hot_range": {
+                      "count": 3,
+                      "length": 2,
+                      "probability": 0.9
+                    }
+                  },
+                  {
+                    "sampled": {
+                      "length": 8,
+                      "character_set": "alphanumeric"
+                    }
+                  }
+                ]
+              }
+            },
+            "val": {
+              "sampled": {
+                "length": 10,
+                "character_set": "alphanumeric"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

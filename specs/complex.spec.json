@@ -1,5 +1,28 @@
 {
+  "$schema": "../workload_schema.json",
   "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 1000,
+            "key": {
+              "hot_range": {
+                "count": 10,
+                "length": 2,
+                "probability": 0.7
+              }
+            },
+            "val": {
+              "sampled": {
+                "length": 10,
+                "character_set": "alphanumeric"
+              }
+            }
+          }
+        }
+      ]
+    },
     {
       "groups": [
         {
