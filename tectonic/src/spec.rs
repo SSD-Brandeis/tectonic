@@ -1,6 +1,6 @@
 #![allow(clippy::needless_return)]
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rand::Rng;
 
 use rand_distr::Distribution as _;
@@ -8,17 +8,20 @@ use schemars::JsonSchema;
 use schemars::Schema;
 use schemars::SchemaGenerator;
 use std::borrow::Cow;
-
-pub(crate) trait Evaluate {
-    /// Evaluates the expression to a value.
-    fn evaluate(&self, rng: &mut impl Rng) -> f32;
-
-    /// Returns the expected value of the expression.
-    fn expected_value(&self) -> f32;
-}
+use std::io::Write;
+use rand::distr::Alphanumeric;
+use rand::distr::weighted::WeightedIndex;
+use crate::keyset::Key;
+// pub trait Evaluate {
+//     /// Evaluates the expression to a value.
+//     fn evaluate(&self, rng: &mut impl Rng) -> f32;
+//
+//     /// Returns the expected value of the expression.
+//     fn expected_value(&self) -> f32;
+// }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 enum DistributionConfig {
     Uniform { min: f32, max: f32 },
     Normal { mean: f32, std_dev: f32 },
@@ -111,7 +114,7 @@ fn generalized_harmonic(n: usize, s: f32) -> f32 {
     (1..=n).map(|k| 1.0 / (k as f32).powf(s)).sum()
 }
 
-impl Evaluate for Distribution {
+impl Distribution {
     fn evaluate(&self, rng: &mut impl Rng) -> f32 {
         return match self {
             Self::Uniform { distr, .. } => distr.sample(rng),
@@ -140,27 +143,25 @@ impl Evaluate for Distribution {
 // No docstring
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(untagged)]
-pub enum Expr {
+pub enum NumberExpr {
     Constant(f32),
     Sampled(Distribution),
 }
 
-impl Expr {
+impl NumberExpr {
     /// Evaluates the expression to a value.
     pub fn evaluate(&self, rng: &mut impl Rng) -> f32 {
-        use Expr as E;
         match self {
-            E::Constant(val) => *val,
-            E::Sampled(dist) => dist.evaluate(rng),
+            Self::Constant(val) => *val,
+            Self::Sampled(dist) => dist.evaluate(rng),
         }
     }
 
     /// Expected value of the expression.
     pub fn expected_value(&self) -> f32 {
-        use Expr as E;
         match self {
-            E::Constant(val) => *val,
-            E::Sampled(dist) => dist.expected_value(),
+            Self::Constant(val) => *val,
+            Self::Sampled(dist) => dist.expected_value(),
         }
     }
 }
@@ -174,84 +175,184 @@ pub enum KeyDistribution {
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
+pub struct Weight {
+    /// The weight of the item.
+    pub weight: f32,
+    /// The value of the item.
+    pub value: StringExpr,
+
+}
+
+#[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum StringExpr {
+    Constant(String),
+    Sampled {
+        /// The distribution to use for sampling the string.
+        distribution: Distribution,
+        /// The length of the string to sample.
+        length: NumberExpr,
+        /// The character set to use for sampling the string.
+        character_set: CharacterSet
+    },
+    Weighted(Vec<Weight>),
+    Segmented {
+        separator: String, /// The segments to use for the string.
+        segments: Vec<StringExpr>,
+    },
+    // HotRange {
+    //     length: usize,
+    //     count: usize,
+    //     probability: f32,
+    // }
+}
+
+impl StringExpr {
+    pub fn generate(&self, rng: &mut impl Rng) -> Key {
+        return match self {
+            Self::Constant(val) => {
+                Key::from(val.as_bytes())
+            },
+            Self::Sampled { distribution: _, length, character_set } => {
+                let len = length.evaluate(rng) as usize;
+                let distr = match character_set {
+                    CharacterSet::Alphanumeric => Alphanumeric
+                };
+                Key::from_iter(rng.sample_iter(distr).take(len))
+            }
+            Self::Weighted(items) => {
+                let weights = items.iter().map(|w| w.weight).collect::<Vec<_>>();
+                let dist = WeightedIndex::new(&weights).context("Building weight distribution").expect("to be able to build a weighted index");
+                let random_value = rng.sample(dist);
+                let item = &items[random_value];
+                item.value.generate(rng)
+            }
+            Self::Segmented { separator, segments } => {
+                let mut buf = Vec::new();
+                for segment in segments {
+                    segment.write_all(&mut buf, rng).context("Writing weighted string").expect("to be able to write to a vec");
+                    buf.extend(separator.as_bytes());
+                }
+                Key::from(buf)
+            },
+        }
+    }
+    /// Evaluates the expression to a value.
+    pub fn write_all(&self, writer: &mut impl Write, rng: &mut impl Rng) -> Result<()> {
+        match self {
+            Self::Constant(val) => {
+                writer.write_all(val.as_bytes()).context("Writing constant string")
+            },
+            Self::Sampled { distribution: _, length, character_set } => {
+                let len= length.evaluate(rng) as usize;
+                let distr = match character_set {
+                    CharacterSet::Alphanumeric => Alphanumeric
+                };
+                for ch in rng.sample_iter(distr).take(len) {
+                    writer.write_all(&[ch]).context("Writing sampled string")?;
+                }
+                return Ok(());
+            }
+            Self::Weighted(items) => {
+                let weights = items.iter().map(|w| w.weight).collect::<Vec<_>>();
+                let dist = WeightedIndex::new(&weights).context("Building weight distribution")?;
+                let random_value = rng.sample(dist);
+                let item = &items[random_value];
+                return item.value.write_all(writer, rng).context("Writing weighted string");
+            }
+            Self::Segmented { separator, segments } => {
+                for segment in segments {
+                    segment.write_all(writer, rng).context("Writing weighted string")?;
+                    writer.write_all(separator.as_bytes()).context("Writing separator")?;
+                }
+                return Ok(());
+            },
+        }
+    }
+}
+
+
+#[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Inserts specification.
 pub struct Inserts {
     /// Number of inserts
-    pub(crate) amount: Expr,
-    /// Key length
-    pub(crate) key_len: Expr,
-    /// Value length
-    pub(crate) val_len: Expr,
+    pub amount: NumberExpr,
+    /// Key
+    pub key: StringExpr,
+    /// Value
+    pub val: StringExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Updates specification.
 pub struct Updates {
     /// Number of updates
-    pub(crate) amount: Expr,
-    /// Value length
-    pub(crate) val_len: Expr,
+    pub amount: NumberExpr,
+    /// Value
+    pub val: StringExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Non-empty point deletes specification.
 pub struct PointDeletes {
     /// Number of non-empty point deletes
-    pub(crate) amount: Expr,
+    pub amount: NumberExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Empty point deletes specification.
 pub struct EmptyPointDeletes {
     /// Number of empty point deletes
-    pub(crate) amount: Expr,
-    /// Key length
-    pub(crate) key_len: Expr,
+    pub amount: NumberExpr,
+    /// Key
+    pub key: StringExpr,
+
+
 }
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Range deletes specification.
 pub struct RangeDeletes {
     /// Number of range deletes
-    pub(crate) amount: Expr,
+    pub amount: NumberExpr,
     /// Selectivity of range deletes. Based off of the range of valid keys, not the full key space.
-    pub(crate) selectivity: Expr,
+    pub selectivity: NumberExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Non-empty point queries specification.
 pub struct PointQueries {
     /// Number of point queries
-    pub(crate) amount: Expr,
+    pub amount: NumberExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Empty point queries specification.
 pub struct EmptyPointQueries {
     /// Number of point queries
-    pub(crate) amount: Expr,
-    /// Key length
-    pub(crate) key_len: Expr,
+    pub amount: NumberExpr,
+    /// Key
+    pub key: StringExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Range queries specification.
 pub struct RangeQueries {
     /// Number of range queries
-    pub(crate) amount: Expr,
+    pub amount: NumberExpr,
     /// Selectivity of range queries. Based off of the range of valid keys, not the full key-space.
-    pub(crate) selectivity: Expr,
+    pub selectivity: NumberExpr,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
-pub(crate) struct WorkloadSpecGroup {
-    pub(crate) inserts: Option<Inserts>,
-    pub(crate) updates: Option<Updates>,
-    pub(crate) point_deletes: Option<PointDeletes>,
-    pub(crate) empty_point_deletes: Option<EmptyPointDeletes>,
-    pub(crate) range_deletes: Option<RangeDeletes>,
-    pub(crate) point_queries: Option<PointQueries>,
-    pub(crate) empty_point_queries: Option<EmptyPointQueries>,
-    pub(crate) range_queries: Option<RangeQueries>,
+pub struct WorkloadSpecGroup {
+    pub inserts: Option<Inserts>,
+    pub updates: Option<Updates>,
+    pub point_deletes: Option<PointDeletes>,
+    pub empty_point_deletes: Option<EmptyPointDeletes>,
+    pub range_deletes: Option<RangeDeletes>,
+    pub point_queries: Option<PointQueries>,
+    pub empty_point_queries: Option<EmptyPointQueries>,
+    pub range_queries: Option<RangeQueries>,
 }
 
 // impl WorkloadSpecGroup {
@@ -302,7 +403,7 @@ pub(crate) struct WorkloadSpecGroup {
 
 #[derive(serde::Deserialize, JsonSchema, Default, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum CharacterSet {
+pub enum CharacterSet {
     #[default]
     Alphanumeric,
     // AlphanumericLower,
@@ -316,22 +417,22 @@ pub(crate) enum CharacterSet {
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
-pub(crate) struct WorkloadSpecSection {
+pub struct WorkloadSpecSection {
     /// A list of groups. Groups share valid keys between operations.
     ///
     /// E.g., non-empty point queries will use a key from an insert in this group.
-    pub(crate) groups: Vec<WorkloadSpecGroup>,
+    pub groups: Vec<WorkloadSpecGroup>,
     /// The domain from which the keys will be created from.
     #[serde(default = "CharacterSet::default")]
-    pub(crate) character_set: CharacterSet,
+    pub character_set: CharacterSet,
     /// The domain from which the keys will be created from.
     #[serde(default = "KeyDistribution::default")]
-    pub(crate) key_distribution: KeyDistribution,
+    pub key_distribution: KeyDistribution,
     /// Whether to skip the check that a generated key is in the valid key set for inserts and empty point queries/deletes.
     ///
     /// This is useful when the keyspace is much larger than the number of keys being generated, as it can greatly decrease generation time.
     #[serde(default)]
-    pub(crate) skip_key_contains_check: bool,
+    pub skip_key_contains_check: bool,
 }
 
 // impl WorkloadSpecSection {
@@ -365,7 +466,7 @@ pub(crate) struct WorkloadSpecSection {
 #[derive(serde::Deserialize, JsonSchema, Debug, Clone)]
 pub struct WorkloadSpec {
     /// Sections of a workload where a key from one will (probably) not appear in another.
-    pub(crate) sections: Vec<WorkloadSpecSection>,
+    pub sections: Vec<WorkloadSpecSection>,
 }
 
 // impl WorkloadSpec {
