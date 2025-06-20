@@ -14,13 +14,7 @@ use schemars::SchemaGenerator;
 use statrs::function::gamma::gamma;
 use std::borrow::Cow;
 use std::io::Write;
-// pub trait Evaluate {
-//     /// Evaluates the expression to a value.
-//     fn evaluate(&self, rng: &mut impl Rng) -> f32;
-//
-//     /// Returns the expected value of the expression.
-//     fn expected_value(&self) -> f32;
-// }
+use statrs::function::harmonic::gen_harmonic;
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -160,9 +154,6 @@ impl JsonSchema for Distribution {
     }
 }
 
-fn generalized_harmonic(n: usize, s: f32) -> f32 {
-    (1..=n).map(|k| 1.0 / (k as f32).powf(s)).sum()
-}
 
 impl Distribution {
     fn evaluate(&self, rng: &mut impl Rng) -> f32 {
@@ -186,9 +177,9 @@ impl Distribution {
             Self::Exponential { lambda, .. } => 1.0 / lambda,
             Self::Beta { alpha, beta, .. } => alpha / (alpha + beta),
             Self::Zipf { s, n, .. } => {
-                let hs = generalized_harmonic(*n, *s);
-                let hs_minus1 = generalized_harmonic(*n, *s - 1.0);
-                return hs_minus1 / hs;
+                let hs = gen_harmonic(*n as u64, *s as f64);
+                let hs_minus1 = gen_harmonic(*n as u64, (*s - 1.0) as f64);
+                return (hs_minus1 / hs) as f32;
             }
             Self::LogNormal { mu, sigma, .. } => (mu + 0.5 * sigma.powi(2)).exp(),
 
@@ -384,12 +375,14 @@ impl StringExpr {
                 segments,
             } => {
                 let mut buf = Vec::new();
-                for segment in segments {
+                for (i, segment) in segments.iter().enumerate() {
                     segment
                         .write_all(&mut buf, rng)
                         .context("Writing weighted string")
                         .expect("to be able to write to a vec");
-                    buf.extend(separator.as_bytes());
+                    if i != segments.len() - 1 {
+                        buf.extend(separator.as_bytes());
+                    }
                 }
                 Key::from(buf)
             }

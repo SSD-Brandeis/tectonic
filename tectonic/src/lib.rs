@@ -13,6 +13,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::iter::repeat_n;
 use std::path::PathBuf;
+use rand::prelude::SliceRandom;
 
 mod keyset;
 pub mod spec;
@@ -199,7 +200,8 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             markers.extend(repeat_n(Op::PointQuery, query_point_count));
             markers.extend(repeat_n(Op::EmptyPointQuery, query_point_empty_count));
             markers.extend(repeat_n(Op::RangeQuery, query_range_count));
-
+            markers.shuffle(rng_ref);
+            
             for marker in markers {
                 match marker {
                     Op::Insert => {
@@ -221,7 +223,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         AsciiOperationFormatter::write_update(writer, rng_ref, key, &us.val)?;
                     }
                     Op::PointDelete => {
-                        // let idx = rng_ref.random_range(0..keys_valid.len());
+                        // let idx = rng_refworkload-gen-cli.random_range(0..keys_valid.len());
                         // let key = keys_valid.remove(idx);
                         let key = keys_valid.remove_random(rng_ref);
 

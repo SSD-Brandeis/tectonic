@@ -78,27 +78,6 @@
         {
           "type": "object",
           "properties": {
-            "exponential": {
-              "type": "object",
-              "properties": {
-                "lambda": {
-                  "type": "number",
-                  "format": "float"
-                }
-              },
-              "required": [
-                "lambda"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "exponential"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
             "beta": {
               "type": "object",
               "properties": {
@@ -147,6 +126,126 @@
           "additionalProperties": false,
           "required": [
             "zipf"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "exponential": {
+              "type": "object",
+              "properties": {
+                "lambda": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "lambda"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "exponential"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "log_normal": {
+              "type": "object",
+              "properties": {
+                "mu": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "sigma": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "mu",
+                "sigma"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "log_normal"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "poisson": {
+              "type": "object",
+              "properties": {
+                "lambda": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "lambda"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "poisson"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "weibull": {
+              "type": "object",
+              "properties": {
+                "scale": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "shape": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "scale",
+                "shape"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "weibull"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "pareto": {
+              "type": "object",
+              "properties": {
+                "scale": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "shape": {
+                  "type": "number",
+                  "format": "float"
+                }
+              },
+              "required": [
+                "scale",
+                "shape"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "pareto"
           ]
         }
       ]
