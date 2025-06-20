@@ -1,7 +1,6 @@
 #![allow(clippy::needless_return)]
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use std::io::Write;
 use std::{fs, path::PathBuf};
 use tectonic::{generate_workload, generate_workload_spec_schema};
 use walkdir::WalkDir;
@@ -44,10 +43,6 @@ fn main() -> Result<()> {
         } => invoke_generate(&workload_path, output.as_deref()),
         Command::Schema => invoke_schema(),
     }
-}
-
-fn get_writer() -> impl Write {
-    return std::io::sink();
 }
 
 /// Generate workload(s) from a file or folder of workload specifications.
