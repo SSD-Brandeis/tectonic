@@ -24,7 +24,7 @@ enum DistributionConfig {
     Beta { alpha: f32, beta: f32 },
     Zipf { n: usize, s: f32 },
     Exponential { lambda: f32 },
-    LogNormal { mu: f32, sigma: f32 },
+    LogNormal { mean: f32, std_dev: f32 },
     Poisson { lambda: f32 },
     Weibull { scale: f32, shape: f32 },
     Pareto { scale: f32, shape: f32 },
@@ -64,8 +64,8 @@ pub enum Distribution {
         distr: rand_distr::Zipf<f32>,
     },
     LogNormal {
-        mu: f32,
-        sigma: f32,
+        mean: f32,
+        std_dev: f32,
         distr: rand_distr::LogNormal<f32>,
     },
     Poisson {
@@ -114,9 +114,9 @@ impl TryFrom<DistributionConfig> for Distribution {
                 s,
                 distr: rand_distr::Zipf::new(n as f32, s)?,
             },
-            DC::LogNormal { mu, sigma } => Self::LogNormal {
-                mu,
-                sigma,
+            DC::LogNormal { mean: mu, std_dev: sigma } => Self::LogNormal {
+                mean: mu,
+                std_dev: sigma,
                 distr: rand_distr::LogNormal::new(mu, sigma)?,
             },
             DC::Poisson { lambda } => Self::Poisson {
@@ -180,7 +180,7 @@ impl Distribution {
                 let hs_minus1 = gen_harmonic(*n as u64, (*s - 1.0) as f64);
                 return (hs_minus1 / hs) as f32;
             }
-            Self::LogNormal { mu, sigma, .. } => (mu + 0.5 * sigma.powi(2)).exp(),
+            Self::LogNormal { mean: mu, std_dev: sigma, .. } => (mu + 0.5 * sigma.powi(2)).exp(),
 
             Self::Poisson { lambda, .. } => *lambda,
 
