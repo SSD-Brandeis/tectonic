@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use rand::{Rng, SeedableRng};
 
 use crate::keyset::Key;
-use rand::distr::Alphanumeric;
+use rand::distr::{Alphabetic, Alphanumeric};
 use rand::distr::weighted::WeightedIndex;
 use rand_distr::Distribution as _;
 use rand_xoshiro::Xoshiro256Plus;
@@ -15,6 +15,14 @@ use statrs::function::gamma::gamma;
 use statrs::function::harmonic::gen_harmonic;
 use std::borrow::Cow;
 use std::io::Write;
+
+struct Numeric;
+impl rand::distr::Distribution<u8> for Numeric {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> u8 {
+        const RANGE: u8 = 10;
+        rng.random_range(0..RANGE) + b'0'
+    }
+}
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -363,10 +371,11 @@ impl StringExpr {
                         let character_set =
                             character_set.or(character_set_parent).unwrap_or_default();
                         let len = length.evaluate(rng) as usize;
-                        let distr = match character_set {
-                            CharacterSet::Alphanumeric => Alphanumeric,
-                        };
-                        Key::from_iter(rng.sample_iter(distr).take(len))
+                        match character_set {
+                            CharacterSet::Alphanumeric => Key::from_iter(rng.sample_iter(Alphanumeric).take(len)),
+                            CharacterSet::Alphabetic => Key::from_iter(rng.sample_iter(Alphabetic).take(len)),
+                            CharacterSet::Numeric => Key::from_iter(rng.sample_iter(Numeric).take(len)),
+                        }
                     }
                     S::Weighted { items, distr } => {
                         let random_value = rng.sample(distr);
@@ -430,13 +439,22 @@ impl StringExpr {
                         let character_set =
                             character_set.or(character_set_parent).unwrap_or_default();
                         let len = length.evaluate(rng) as usize;
-                        let distr = match character_set {
-                            CharacterSet::Alphanumeric => Alphanumeric,
-                        };
-                        for ch in rng.sample_iter(distr).take(len) {
-                            writer.write_all(&[ch]).context("Writing sampled string")?;
+                        fn write_all(
+                            writer: &mut impl Write,
+                            rng: &mut impl Rng,
+                            distr: impl rand::distr::Distribution<u8>,
+                            len: usize,
+                        ) -> Result<()> {
+                            for ch in rng.sample_iter(distr).take(len) {
+                                writer.write_all(&[ch]).context("Writing sampled string")?;
+                            }
+                            Ok(())
                         }
-                        return Ok(());
+                        return match character_set {
+                            CharacterSet::Alphanumeric => write_all(writer, rng, Alphanumeric, len),
+                            CharacterSet::Alphabetic => write_all(writer, rng, Alphabetic, len),
+                            CharacterSet::Numeric => write_all(writer, rng, Numeric, len),
+                        };
                     }
                     S::Weighted { items, distr } => {
                         let random_value = rng.sample(distr);
@@ -580,8 +598,18 @@ pub struct RangeQueries {
     pub character_set: Option<CharacterSet>,
 }
 
+
+#[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
+pub struct Sorted {
+    /// The number of displaced operations.
+    pub k: NumberExpr,
+    /// The distance between swapped elements.
+    pub l: NumberExpr,
+}
+
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 pub struct WorkloadSpecGroup {
+    pub sorted: Option<Sorted>,
     pub inserts: Option<Inserts>,
     pub updates: Option<Updates>,
     pub merges: Option<Merges>,
@@ -648,10 +676,10 @@ pub enum CharacterSet {
     Alphanumeric,
     // AlphanumericLower,
     // AlphanumericUpper,
-    // Alphabetic,
+    Alphabetic,
     // AlphabeticLower,
     // AlphabeticUpper,
-    // Numeric,
+    Numeric,
     // Hexadecimal,
     // Utf8,
 }
@@ -708,8 +736,8 @@ pub struct WorkloadSpec {
     /// Sections of a workload where a key from one will (probably) not appear in another.
     pub sections: Vec<WorkloadSpecSection>,
     /// The domain from which the keys will be created from.
-    #[serde(default = "CharacterSet::default")]
-    pub character_set: CharacterSet,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 // impl WorkloadSpec {

@@ -150,6 +150,8 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
         for group in &section.groups {
             let rng_ref = &mut rng;
             let mut markers: Vec<Op> = Vec::with_capacity(0 /*group.operation_count()*/);
+            let character_set = group.character_set.or(section.character_set).or(workload.character_set);
+
 
             let insert_count = group
                 .inserts
@@ -193,6 +195,33 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                 bail!("Cannot have more point deletes than existing valid keys.");
             }
 
+            let mut key_pool = if let Some(sorted) = &group.sorted {
+                let is = group.inserts.as_ref().ok_or_else(|| {
+                    anyhow!("Insert spec must exist if sorted config exists")
+                })?;
+                let mut pool = Vec::with_capacity(insert_count);
+                for _ in 0..insert_count {
+                    let key = is.key.generate(rng_ref, is.character_set.or(character_set));
+                    pool.push(key);
+                }
+
+                // reverse sort so that we can pop from the end
+                pool.sort_by(|a, b| b.cmp(a));
+
+                let k = sorted.k.evaluate(rng_ref) as usize;
+                for _ in 0..(k / 2) {
+                    // clamp bounds are [idx-l = 0, idx+l = pool.len() - 1]
+                    let idx = rng_ref.random_range(0..pool.len()) as isize;
+                    let l = (sorted.l.evaluate(rng_ref) as isize)
+                        .clamp(-idx, pool.len() as isize - 1 - idx);
+                    let x = pool.swap(idx as usize, (idx + l) as usize);
+                    x
+                }
+                Some(pool)
+            } else {
+                None
+            };
+
             // A group must have at least 1 valid key before any other operation can occur.
             if keys_valid.is_empty() {
                 if insert_count == 0 {
@@ -210,13 +239,19 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                 // let key = gen_string(rng_ref, key_len);
                 // let val_len = is.val_len.evaluate(rng_ref) as usize;
                 // let val = gen_string(rng_ref, val_len);
-                let key = is.key.generate(rng_ref, is.character_set);
+                let key = key_pool
+                    .as_mut()
+                    .and_then(|pool| pool.pop())
+                    .unwrap_or_else(|| {
+                        is.key.generate(rng_ref, is.character_set.or(character_set))
+                    });
+                // let key = is.key.generate(rng_ref, is.character_set);
                 AsciiOperationFormatter::write_insert(
                     writer,
                     rng_ref,
                     &key,
                     &is.val,
-                    is.character_set,
+                    is.character_set.or(character_set),
                 )?;
                 keys_valid.push(key);
             } else {
@@ -238,13 +273,19 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         let is = group.inserts.as_ref().ok_or_else(|| {
                             anyhow!("Insert marker can only appear when inserts is not None")
                         })?;
-                        let key = is.key.generate(rng_ref, is.character_set);
+                        let key = key_pool
+                            .as_mut()
+                            .and_then(|pool| pool.pop())
+                            .unwrap_or_else(|| {
+                                is.key.generate(rng_ref, is.character_set.or(character_set))
+                            });
+                        // let key = is.key.generate(rng_ref, is.character_set);
                         AsciiOperationFormatter::write_insert(
                             writer,
                             rng_ref,
                             &key,
                             &is.val,
-                            is.character_set,
+                            is.character_set.or(character_set),
                         )?;
                         keys_valid.push(key);
                     }
@@ -261,7 +302,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             rng_ref,
                             key,
                             &us.val,
-                            us.character_set,
+                            us.character_set.or(character_set),
                         )?;
                     }
                     Op::Merge => {
@@ -277,7 +318,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             rng_ref,
                             key,
                             &ms.val,
-                            ms.character_set,
+                            ms.character_set.or(character_set),
                         )?;
                     }
                     Op::PointDelete => {
@@ -299,7 +340,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             anyhow!("Empty point delete marker can only appear when empty_point_deletes is not None")
                         })?;
                         let key = loop {
-                            let k = epd.key.generate(rng_ref, epd.character_set);
+                            let k = epd.key.generate(rng_ref, epd.character_set.or(character_set));
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
@@ -312,7 +353,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             anyhow!("Empty point query marker can only appear when empty_point_queries is not None")
                         })?;
                         let key = loop {
-                            let k = epq.key.generate(rng_ref, epq.character_set);
+                            let k = epq.key.generate(rng_ref, epq.character_set.or(character_set));
                             if !keys_valid.contains(&k) {
                                 break k;
                             }

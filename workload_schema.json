@@ -5,7 +5,14 @@
   "properties": {
     "character_set": {
       "description": "The domain from which the keys will be created from.",
-      "$ref": "#/$defs/CharacterSet"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CharacterSet"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "sections": {
       "description": "Sections of a workload where a key from one will (probably) not appear in another.",
@@ -15,11 +22,17 @@
       }
     }
   },
-  "required": ["sections"],
+  "required": [
+    "sections"
+  ],
   "$defs": {
     "CharacterSet": {
       "type": "string",
-      "enum": ["alphanumeric"]
+      "enum": [
+        "alphanumeric",
+        "alphabetic",
+        "numeric"
+      ]
     },
     "Distribution": {
       "oneOf": [
@@ -38,11 +51,16 @@
                   "format": "float"
                 }
               },
-              "required": ["min", "max"]
+              "required": [
+                "min",
+                "max"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["uniform"]
+          "required": [
+            "uniform"
+          ]
         },
         {
           "type": "object",
@@ -59,11 +77,16 @@
                   "format": "float"
                 }
               },
-              "required": ["mean", "std_dev"]
+              "required": [
+                "mean",
+                "std_dev"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["normal"]
+          "required": [
+            "normal"
+          ]
         },
         {
           "type": "object",
@@ -80,11 +103,16 @@
                   "format": "float"
                 }
               },
-              "required": ["alpha", "beta"]
+              "required": [
+                "alpha",
+                "beta"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["beta"]
+          "required": [
+            "beta"
+          ]
         },
         {
           "type": "object",
@@ -102,11 +130,16 @@
                   "format": "float"
                 }
               },
-              "required": ["n", "s"]
+              "required": [
+                "n",
+                "s"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["zipf"]
+          "required": [
+            "zipf"
+          ]
         },
         {
           "type": "object",
@@ -119,11 +152,15 @@
                   "format": "float"
                 }
               },
-              "required": ["lambda"]
+              "required": [
+                "lambda"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["exponential"]
+          "required": [
+            "exponential"
+          ]
         },
         {
           "type": "object",
@@ -131,20 +168,25 @@
             "log_normal": {
               "type": "object",
               "properties": {
-                "mu": {
+                "mean": {
                   "type": "number",
                   "format": "float"
                 },
-                "sigma": {
+                "std_dev": {
                   "type": "number",
                   "format": "float"
                 }
               },
-              "required": ["mu", "sigma"]
+              "required": [
+                "mean",
+                "std_dev"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["log_normal"]
+          "required": [
+            "log_normal"
+          ]
         },
         {
           "type": "object",
@@ -157,11 +199,15 @@
                   "format": "float"
                 }
               },
-              "required": ["lambda"]
+              "required": [
+                "lambda"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["poisson"]
+          "required": [
+            "poisson"
+          ]
         },
         {
           "type": "object",
@@ -178,11 +224,16 @@
                   "format": "float"
                 }
               },
-              "required": ["scale", "shape"]
+              "required": [
+                "scale",
+                "shape"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["weibull"]
+          "required": [
+            "weibull"
+          ]
         },
         {
           "type": "object",
@@ -199,11 +250,16 @@
                   "format": "float"
                 }
               },
-              "required": ["scale", "shape"]
+              "required": [
+                "scale",
+                "shape"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["pareto"]
+          "required": [
+            "pareto"
+          ]
         }
       ]
     },
@@ -230,7 +286,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "key"]
+      "required": [
+        "amount",
+        "key"
+      ]
     },
     "EmptyPointQueries": {
       "description": "Empty point queries specification.",
@@ -255,7 +314,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "key"]
+      "required": [
+        "amount",
+        "key"
+      ]
     },
     "Inserts": {
       "description": "Inserts specification.",
@@ -284,12 +346,18 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "key", "val"]
+      "required": [
+        "amount",
+        "key",
+        "val"
+      ]
     },
     "KeyDistribution": {
       "description": "Different selection strategies for keys in a workload.",
       "type": "string",
-      "enum": ["uniform"]
+      "enum": [
+        "uniform"
+      ]
     },
     "Merges": {
       "description": "Merges (read-modify-write) specification.",
@@ -314,7 +382,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "val"]
+      "required": [
+        "amount",
+        "val"
+      ]
     },
     "NumberExpr": {
       "anyOf": [
@@ -346,7 +417,9 @@
           ]
         }
       },
-      "required": ["amount"]
+      "required": [
+        "amount"
+      ]
     },
     "PointQueries": {
       "description": "Non-empty point queries specification.",
@@ -367,7 +440,9 @@
           ]
         }
       },
-      "required": ["amount"]
+      "required": [
+        "amount"
+      ]
     },
     "RangeDeletes": {
       "description": "Range deletes specification.",
@@ -392,7 +467,10 @@
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": ["amount", "selectivity"]
+      "required": [
+        "amount",
+        "selectivity"
+      ]
     },
     "RangeQueries": {
       "description": "Range queries specification.",
@@ -417,7 +495,27 @@
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": ["amount", "selectivity"]
+      "required": [
+        "amount",
+        "selectivity"
+      ]
+    },
+    "Sorted": {
+      "type": "object",
+      "properties": {
+        "k": {
+          "description": "The number of displaced operations.",
+          "$ref": "#/$defs/NumberExpr"
+        },
+        "l": {
+          "description": "The distance between swapped elements.",
+          "$ref": "#/$defs/NumberExpr"
+        }
+      },
+      "required": [
+        "k",
+        "l"
+      ]
     },
     "StringExpr": {
       "anyOf": [
@@ -453,11 +551,15 @@
                   "$ref": "#/$defs/NumberExpr"
                 }
               },
-              "required": ["len"]
+              "required": [
+                "len"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["uniform"]
+          "required": [
+            "uniform"
+          ]
         },
         {
           "type": "object",
@@ -470,7 +572,9 @@
             }
           },
           "additionalProperties": false,
-          "required": ["weighted"]
+          "required": [
+            "weighted"
+          ]
         },
         {
           "type": "object",
@@ -489,11 +593,16 @@
                   "type": "string"
                 }
               },
-              "required": ["separator", "segments"]
+              "required": [
+                "separator",
+                "segments"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["segmented"]
+          "required": [
+            "segmented"
+          ]
         },
         {
           "type": "object",
@@ -516,11 +625,17 @@
                   "format": "float"
                 }
               },
-              "required": ["len", "amount", "probability"]
+              "required": [
+                "len",
+                "amount",
+                "probability"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["hot_range"]
+          "required": [
+            "hot_range"
+          ]
         }
       ]
     },
@@ -547,7 +662,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "val"]
+      "required": [
+        "amount",
+        "val"
+      ]
     },
     "Weight": {
       "type": "object",
@@ -562,7 +680,10 @@
           "format": "float"
         }
       },
-      "required": ["weight", "value"]
+      "required": [
+        "weight",
+        "value"
+      ]
     },
     "WorkloadSpecGroup": {
       "type": "object",
@@ -657,6 +778,16 @@
             }
           ]
         },
+        "sorted": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sorted"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "updates": {
           "anyOf": [
             {
@@ -700,7 +831,9 @@
           "default": false
         }
       },
-      "required": ["groups"]
+      "required": [
+        "groups"
+      ]
     }
   }
 }
