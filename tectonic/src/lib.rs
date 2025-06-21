@@ -362,9 +362,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         }
 
                         keys_valid.sort();
-                        println!("{rds:?}");
                         let x = rds.selectivity.evaluate(rng_ref).clamp(0.0, 1.0);
-                        println!("{x:?}");
                         let num_items = (x
                             * (keys_valid.len() as f32).floor())
                             as usize;
