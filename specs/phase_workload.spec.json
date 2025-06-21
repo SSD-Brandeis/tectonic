@@ -1,0 +1,121 @@
+{
+  "$schema": "../workload_schema.json",
+  "character_set": "alphanumeric",
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 9000000,
+            "key": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            },
+            "val": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            }
+          },
+          "point_queries": {
+            "amount": 1000000,
+            "key": {
+              "zipf": {
+                "n": 1000000,
+                "s": 1.2
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 1000000,
+            "key": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            },
+            "val": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            }
+          },
+          "point_queries": {
+            "amount": 9000000,
+            "key": {
+              "uniform": {
+                "min": 0,
+                "max": 999999
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 1000000,
+            "key": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            },
+            "val": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            }
+          },
+          "range_queries": {
+            "amount": 5000000,
+            "selectivity": 0.1,
+            "key": {
+              "log_normal": {
+                "mean": 10,
+                "std_dev": 2
+              }
+            }
+          },
+          "point_queries": {
+            "amount": 3000000,
+            "key": {
+              "normal": {
+                "mean": 500000,
+                "std_dev": 100000
+              }
+            }
+          },
+          "updates": {
+            "amount": 1000000,
+            "val": {
+              "sampled": {
+                "length": 128,
+                "character_set": "alphanumeric"
+              }
+            },
+            "key": {
+              "beta": {
+                "alpha": 2,
+                "beta": 5
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
