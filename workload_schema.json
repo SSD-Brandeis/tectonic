@@ -3,6 +3,10 @@
   "title": "WorkloadSpec",
   "type": "object",
   "properties": {
+    "character_set": {
+      "description": "The domain from which the keys will be created from.",
+      "$ref": "#/$defs/CharacterSet"
+    },
     "sections": {
       "description": "Sections of a workload where a key from one will (probably) not appear in another.",
       "type": "array",
@@ -11,15 +15,11 @@
       }
     }
   },
-  "required": [
-    "sections"
-  ],
+  "required": ["sections"],
   "$defs": {
     "CharacterSet": {
       "type": "string",
-      "enum": [
-        "alphanumeric"
-      ]
+      "enum": ["alphanumeric"]
     },
     "Distribution": {
       "oneOf": [
@@ -38,16 +38,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "min",
-                "max"
-              ]
+              "required": ["min", "max"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "uniform"
-          ]
+          "required": ["uniform"]
         },
         {
           "type": "object",
@@ -64,16 +59,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "mean",
-                "std_dev"
-              ]
+              "required": ["mean", "std_dev"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "normal"
-          ]
+          "required": ["normal"]
         },
         {
           "type": "object",
@@ -90,16 +80,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "alpha",
-                "beta"
-              ]
+              "required": ["alpha", "beta"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "beta"
-          ]
+          "required": ["beta"]
         },
         {
           "type": "object",
@@ -117,16 +102,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "n",
-                "s"
-              ]
+              "required": ["n", "s"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "zipf"
-          ]
+          "required": ["zipf"]
         },
         {
           "type": "object",
@@ -139,15 +119,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "lambda"
-              ]
+              "required": ["lambda"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "exponential"
-          ]
+          "required": ["exponential"]
         },
         {
           "type": "object",
@@ -164,16 +140,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "mu",
-                "sigma"
-              ]
+              "required": ["mu", "sigma"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "log_normal"
-          ]
+          "required": ["log_normal"]
         },
         {
           "type": "object",
@@ -186,15 +157,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "lambda"
-              ]
+              "required": ["lambda"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "poisson"
-          ]
+          "required": ["poisson"]
         },
         {
           "type": "object",
@@ -211,16 +178,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "scale",
-                "shape"
-              ]
+              "required": ["scale", "shape"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "weibull"
-          ]
+          "required": ["weibull"]
         },
         {
           "type": "object",
@@ -237,16 +199,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "scale",
-                "shape"
-              ]
+              "required": ["scale", "shape"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "pareto"
-          ]
+          "required": ["pareto"]
         }
       ]
     },
@@ -258,15 +215,22 @@
           "description": "Number of empty point deletes",
           "$ref": "#/$defs/NumberExpr"
         },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "key": {
           "description": "Key",
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": [
-        "amount",
-        "key"
-      ]
+      "required": ["amount", "key"]
     },
     "EmptyPointQueries": {
       "description": "Empty point queries specification.",
@@ -276,15 +240,22 @@
           "description": "Number of point queries",
           "$ref": "#/$defs/NumberExpr"
         },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "key": {
           "description": "Key",
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": [
-        "amount",
-        "key"
-      ]
+      "required": ["amount", "key"]
     },
     "Inserts": {
       "description": "Inserts specification.",
@@ -293,6 +264,16 @@
         "amount": {
           "description": "Number of inserts",
           "$ref": "#/$defs/NumberExpr"
+        },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "key": {
           "description": "Key",
@@ -303,18 +284,37 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": [
-        "amount",
-        "key",
-        "val"
-      ]
+      "required": ["amount", "key", "val"]
     },
     "KeyDistribution": {
       "description": "Different selection strategies for keys in a workload.",
       "type": "string",
-      "enum": [
-        "uniform"
-      ]
+      "enum": ["uniform"]
+    },
+    "Merges": {
+      "description": "Merges (read-modify-write) specification.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Number of merges",
+          "$ref": "#/$defs/NumberExpr"
+        },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "val": {
+          "description": "Value",
+          "$ref": "#/$defs/StringExpr"
+        }
+      },
+      "required": ["amount", "val"]
     },
     "NumberExpr": {
       "anyOf": [
@@ -334,11 +334,19 @@
         "amount": {
           "description": "Number of non-empty point deletes",
           "$ref": "#/$defs/NumberExpr"
+        },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
-      "required": [
-        "amount"
-      ]
+      "required": ["amount"]
     },
     "PointQueries": {
       "description": "Non-empty point queries specification.",
@@ -347,11 +355,19 @@
         "amount": {
           "description": "Number of point queries",
           "$ref": "#/$defs/NumberExpr"
+        },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
-      "required": [
-        "amount"
-      ]
+      "required": ["amount"]
     },
     "RangeDeletes": {
       "description": "Range deletes specification.",
@@ -361,15 +377,22 @@
           "description": "Number of range deletes",
           "$ref": "#/$defs/NumberExpr"
         },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "selectivity": {
           "description": "Selectivity of range deletes. Based off of the range of valid keys, not the full key space.",
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": [
-        "amount",
-        "selectivity"
-      ]
+      "required": ["amount", "selectivity"]
     },
     "RangeQueries": {
       "description": "Range queries specification.",
@@ -379,55 +402,62 @@
           "description": "Number of range queries",
           "$ref": "#/$defs/NumberExpr"
         },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "selectivity": {
           "description": "Selectivity of range queries. Based off of the range of valid keys, not the full key-space.",
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": [
-        "amount",
-        "selectivity"
-      ]
+      "required": ["amount", "selectivity"]
     },
     "StringExpr": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/StringExprInner"
+        }
+      ]
+    },
+    "StringExprInner": {
       "oneOf": [
         {
           "type": "object",
           "properties": {
-            "constant": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "constant"
-          ]
-        },
-        {
-          "type": "object",
-          "properties": {
-            "sampled": {
+            "uniform": {
               "type": "object",
               "properties": {
                 "character_set": {
                   "description": "The character set to use for sampling the string.",
-                  "$ref": "#/$defs/CharacterSet"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/CharacterSet"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
-                "length": {
-                  "description": "The distribution to use for sampling the string.\nThe length of the string to sample.",
+                "len": {
+                  "description": "The length of the string to sample.",
                   "$ref": "#/$defs/NumberExpr"
                 }
               },
-              "required": [
-                "length",
-                "character_set"
-              ]
+              "required": ["len"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "sampled"
-          ]
+          "required": ["uniform"]
         },
         {
           "type": "object",
@@ -440,9 +470,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "weighted"
-          ]
+          "required": ["weighted"]
         },
         {
           "type": "object",
@@ -461,16 +489,11 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "separator",
-                "segments"
-              ]
+              "required": ["separator", "segments"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "segmented"
-          ]
+          "required": ["segmented"]
         },
         {
           "type": "object",
@@ -478,12 +501,12 @@
             "hot_range": {
               "type": "object",
               "properties": {
-                "count": {
+                "amount": {
                   "type": "integer",
                   "format": "uint",
                   "minimum": 0
                 },
-                "length": {
+                "len": {
                   "type": "integer",
                   "format": "uint",
                   "minimum": 0
@@ -493,17 +516,11 @@
                   "format": "float"
                 }
               },
-              "required": [
-                "length",
-                "count",
-                "probability"
-              ]
+              "required": ["len", "amount", "probability"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "hot_range"
-          ]
+          "required": ["hot_range"]
         }
       ]
     },
@@ -515,15 +532,22 @@
           "description": "Number of updates",
           "$ref": "#/$defs/NumberExpr"
         },
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "val": {
           "description": "Value",
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": [
-        "amount",
-        "val"
-      ]
+      "required": ["amount", "val"]
     },
     "Weight": {
       "type": "object",
@@ -538,14 +562,21 @@
           "format": "float"
         }
       },
-      "required": [
-        "weight",
-        "value"
-      ]
+      "required": ["weight", "value"]
     },
     "WorkloadSpecGroup": {
       "type": "object",
       "properties": {
+        "character_set": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "empty_point_deletes": {
           "anyOf": [
             {
@@ -570,6 +601,16 @@
           "anyOf": [
             {
               "$ref": "#/$defs/Inserts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "merges": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Merges"
             },
             {
               "type": "null"
@@ -633,7 +674,14 @@
       "properties": {
         "character_set": {
           "description": "The domain from which the keys will be created from.",
-          "$ref": "#/$defs/CharacterSet"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CharacterSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "groups": {
           "description": "A list of groups. Groups share valid keys between operations.\n\nE.g., non-empty point queries will use a key from an insert in this group.",
@@ -652,9 +700,7 @@
           "default": false
         }
       },
-      "required": [
-        "groups"
-      ]
+      "required": ["groups"]
     }
   }
 }

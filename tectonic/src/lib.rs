@@ -5,15 +5,15 @@
 #![allow(clippy::needless_return)]
 #![allow(dead_code)]
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{anyhow, bail, Context, Result};
 use rand::distr::Alphanumeric;
+use rand::prelude::SliceRandom;
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::iter::repeat_n;
 use std::path::PathBuf;
-use rand::prelude::SliceRandom;
 
 mod keyset;
 pub mod spec;
@@ -30,33 +30,51 @@ pub mod spec;
 // - query range
 
 use crate::keyset::{Key, KeySet, VecKeySet};
-use crate::spec::{StringExpr, WorkloadSpec};
+use crate::spec::{CharacterSet, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
 impl AsciiOperationFormatter {
-    fn write_insert(w: &mut impl Write, rng: &mut impl Rng, key: &Key, val: &StringExpr) -> Result<()> {
+    fn write_insert(
+        w: &mut impl Write,
+        rng: &mut impl Rng,
+        key: &Key,
+        val: &StringExpr,
+        character_set: Option<CharacterSet>,
+    ) -> Result<()> {
         w.write_all("I ".as_bytes())?;
         w.write_all(key)?;
         w.write_all(" ".as_bytes())?;
-        val.write_all(w, rng)?;
+        val.write_all(w, rng, character_set)?;
         w.write_all("\n".as_bytes())?;
 
         return Ok(());
     }
-    fn write_update(w: &mut impl Write, rng: &mut impl Rng, key: &Key, val: &StringExpr) -> Result<()> {
+    fn write_update(
+        w: &mut impl Write,
+        rng: &mut impl Rng,
+        key: &Key,
+        val: &StringExpr,
+        character_set: Option<CharacterSet>,
+    ) -> Result<()> {
         w.write_all("U ".as_bytes())?;
         w.write_all(key)?;
         w.write_all(" ".as_bytes())?;
-        val.write_all(w, rng)?;
+        val.write_all(w, rng, character_set)?;
         w.write_all("\n".as_bytes())?;
 
         return Ok(());
     }
-    fn write_merge(w: &mut impl Write, rng: &mut impl Rng, key: &Key, val: &StringExpr) -> Result<()> {
+    fn write_merge(
+        w: &mut impl Write,
+        rng: &mut impl Rng,
+        key: &Key,
+        val: &StringExpr,
+        character_set: Option<CharacterSet>,
+    ) -> Result<()> {
         w.write_all("M ".as_bytes())?;
         w.write_all(key)?;
         w.write_all(" ".as_bytes())?;
-        val.write_all(w, rng)?;
+        val.write_all(w, rng, character_set)?;
         w.write_all("\n".as_bytes())?;
 
         return Ok(());
@@ -68,7 +86,7 @@ impl AsciiOperationFormatter {
 
         return Ok(());
     }
-    fn write_point_query(w: &mut impl Write,  key: &Key) -> Result<()> {
+    fn write_point_query(w: &mut impl Write, key: &Key) -> Result<()> {
         w.write_all("P ".as_bytes())?;
         w.write_all(key)?;
         w.write_all("\n".as_bytes())?;
@@ -84,7 +102,7 @@ impl AsciiOperationFormatter {
 
         return Ok(());
     }
-    fn write_range_delete(w: &mut impl Write,key1: &Key, key2: &Key) -> Result<()> {
+    fn write_range_delete(w: &mut impl Write, key1: &Key, key2: &Key) -> Result<()> {
         w.write_all("R ".as_bytes())?;
         w.write_all(key1)?;
         w.write_all(" ".as_bytes())?;
@@ -99,6 +117,7 @@ impl AsciiOperationFormatter {
 enum Op {
     Insert,
     Update,
+    Merge,
     PointDelete,
     PointDeleteEmpty,
     RangeDelete,
@@ -138,6 +157,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                 .map_or(0, |is| is.amount.evaluate(rng_ref) as usize);
             let update_count = group
                 .updates
+                .as_ref()
+                .map_or(0, |us| us.amount.evaluate(rng_ref) as usize);
+            let merge_count = group
+                .merges
                 .as_ref()
                 .map_or(0, |us| us.amount.evaluate(rng_ref) as usize);
             let delete_point_count = group
@@ -187,13 +210,20 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                 // let key = gen_string(rng_ref, key_len);
                 // let val_len = is.val_len.evaluate(rng_ref) as usize;
                 // let val = gen_string(rng_ref, val_len);
-                let key = is.key.generate(rng_ref);
-                AsciiOperationFormatter::write_insert(writer, rng_ref, &key, &is.val)?;
+                let key = is.key.generate(rng_ref, is.character_set);
+                AsciiOperationFormatter::write_insert(
+                    writer,
+                    rng_ref,
+                    &key,
+                    &is.val,
+                    is.character_set,
+                )?;
                 keys_valid.push(key);
             } else {
                 markers.extend(repeat_n(Op::Insert, insert_count));
             }
             markers.extend(repeat_n(Op::Update, update_count));
+            markers.extend(repeat_n(Op::Merge, merge_count));
             markers.extend(repeat_n(Op::PointDelete, delete_point_count));
             markers.extend(repeat_n(Op::PointDeleteEmpty, delete_point_empty_count));
             markers.extend(repeat_n(Op::RangeDelete, delete_range_count));
@@ -201,15 +231,21 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             markers.extend(repeat_n(Op::EmptyPointQuery, query_point_empty_count));
             markers.extend(repeat_n(Op::RangeQuery, query_range_count));
             markers.shuffle(rng_ref);
-            
+
             for marker in markers {
                 match marker {
                     Op::Insert => {
                         let is = group.inserts.as_ref().ok_or_else(|| {
                             anyhow!("Insert marker can only appear when inserts is not None")
                         })?;
-                        let key = is.key.generate(rng_ref);
-                        AsciiOperationFormatter::write_insert(writer, rng_ref, &key, &is.val)?;
+                        let key = is.key.generate(rng_ref, is.character_set);
+                        AsciiOperationFormatter::write_insert(
+                            writer,
+                            rng_ref,
+                            &key,
+                            &is.val,
+                            is.character_set,
+                        )?;
                         keys_valid.push(key);
                     }
                     Op::Update => {
@@ -220,10 +256,32 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             bail!("Cannot have updates when there are no valid keys.");
                         }
                         let key = keys_valid.get_random(rng_ref);
-                        AsciiOperationFormatter::write_update(writer, rng_ref, key, &us.val)?;
+                        AsciiOperationFormatter::write_update(
+                            writer,
+                            rng_ref,
+                            key,
+                            &us.val,
+                            us.character_set,
+                        )?;
+                    }
+                    Op::Merge => {
+                        let ms = group.merges.as_ref().ok_or_else(|| {
+                            anyhow!("Merge marker can only appear when updates is not None")
+                        })?;
+                        if keys_valid.is_empty() {
+                            bail!("Cannot have merges when there are no valid keys.");
+                        }
+                        let key = keys_valid.get_random(rng_ref);
+                        AsciiOperationFormatter::write_merge(
+                            writer,
+                            rng_ref,
+                            key,
+                            &ms.val,
+                            ms.character_set,
+                        )?;
                     }
                     Op::PointDelete => {
-                        // let idx = rng_refworkload-gen-cli.random_range(0..keys_valid.len());
+                        // let idx = rng_ref.random_range(0..keys_valid.len());
                         // let key = keys_valid.remove(idx);
                         let key = keys_valid.remove_random(rng_ref);
 
@@ -234,33 +292,33 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             bail!("Cannot have point queries when there are no valid keys.");
                         }
                         let key = keys_valid.get_random(rng_ref);
-                        AsciiOperationFormatter::write_point_query(writer,  key)?
+                        AsciiOperationFormatter::write_point_query(writer, key)?
                     }
                     Op::PointDeleteEmpty => {
                         let epd = group.empty_point_deletes.as_ref().ok_or_else(|| {
                             anyhow!("Empty point delete marker can only appear when empty_point_deletes is not None")
                         })?;
                         let key = loop {
-                            let k = epd.key.generate(rng_ref);
+                            let k = epd.key.generate(rng_ref, epd.character_set);
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
                         };
 
-                        AsciiOperationFormatter::write_point_delete(writer,  &key)?
+                        AsciiOperationFormatter::write_point_delete(writer, &key)?
                     }
                     Op::EmptyPointQuery => {
                         let epq = group.empty_point_queries.as_ref().ok_or_else(|| {
                             anyhow!("Empty point query marker can only appear when empty_point_queries is not None")
                         })?;
                         let key = loop {
-                            let k = epq.key.generate(rng_ref);
+                            let k = epq.key.generate(rng_ref, epq.character_set);
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
                         };
 
-                        AsciiOperationFormatter::write_point_query(writer,  &key)?
+                        AsciiOperationFormatter::write_point_query(writer, &key)?
                     }
                     Op::RangeQuery => {
                         let rqs = group.range_queries.as_ref().ok_or_else(|| {
@@ -280,7 +338,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         //     spec::Expr::Constant(s) => s,
                         //     spec::Expr::Sampled(distribution) => distribution.evaluate(rng_ref),
                         // }:
-                        let num_items = (rqs.selectivity.evaluate(rng_ref)
+                        let num_items = (rqs.selectivity.evaluate(rng_ref).clamp(0.0, 1.0)
                             * (keys_valid.len() as f32).floor())
                             as usize;
                         let start_range = 0..keys_valid.len() - num_items;
@@ -291,7 +349,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             .get(start_idx + num_items)
                             .expect("index to be in range");
 
-                        AsciiOperationFormatter::write_range_query(writer,  key1, key2)?
+                        AsciiOperationFormatter::write_range_query(writer, key1, key2)?
                     }
                     Op::RangeDelete => {
                         let rds = group.range_deletes.as_ref().ok_or_else(|| {
@@ -304,7 +362,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         }
 
                         keys_valid.sort();
-                        let num_items = (rds.selectivity.evaluate(rng_ref)
+                        println!("{rds:?}");
+                        let x = rds.selectivity.evaluate(rng_ref).clamp(0.0, 1.0);
+                        println!("{x:?}");
+                        let num_items = (x
                             * (keys_valid.len() as f32).floor())
                             as usize;
                         let start_range = 0..keys_valid.len() - num_items;

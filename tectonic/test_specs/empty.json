@@ -1,4 +1,4 @@
 {
-    "$schema": "../../workload_schema.json",
-    "sections": []
+  "$schema": "../../workload_schema.json",
+  "sections": []
 }

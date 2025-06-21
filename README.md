@@ -19,7 +19,7 @@ cargo run --release
 ./workload-gen-cli generate -w workload_spec.json
 # or
 ./workload-gen-cli generate -w workload_spec.json -o workload_outputs/
-# or 
+# or
 ./workload-gen-cli generate -w workload_specs/ -o workload_outputs/
 ```
 
@@ -34,8 +34,8 @@ Commands:
 Options:
   -h, --help     Print help
   -V, --version  Print version
-  
-  
+
+
 Usage: workload-gen-cli generate [OPTIONS] --workload <WORKLOAD_PATH>
 
 Options:
@@ -48,19 +48,21 @@ Options:
 ## TODO
 
 - speedups
-    - [x] only sort / have data structures when they are necessary
-    - [ ] only store keys + write to buffered writer immediately
-    - [x] only sort keys on rqs when there is an rq
-    - [x] use indexes instead of pointers
-    - [ ] when comparing non-zero values, use multiple threads
-    - [ ] io_uring
+
+  - [x] only sort / have data structures when they are necessary
+  - [ ] only store keys + write to buffered writer immediately
+  - [x] only sort keys on rqs when there is an rq
+  - [x] use indexes instead of pointers
+  - [ ] when comparing non-zero values, use multiple threads
+  - [ ] io_uring
 
 - [ ] run a check of the workload spec before generating to check for errors like more deletes than valid keys or having
-  non-empty pqs without any inserts
+      non-empty pqs without any inserts
 
 - [ ] warnings about keyspace and how picking a small space could lead to lots of failed generation of empty point queries
 
 - [ ] create some sort of workload planner (similar to a query planner) that chooses the correct data structure to use based on the combinations of operations
+
   - e.g. for empty point queries: deletes ? hash_set : bloom_filter. To check inclusion
 
 - [ ] Merge operation
@@ -70,7 +72,7 @@ Options:
 At a minimum, we need a `Vec<Option<Box[u8]>>` holding valid keys.
 
 | Interleaving        | Inserts                                                                                                                                                                                                                                                                                                                             | Updates | Deletes                                             | Point Queries | Range Queries | Empty Point Queries |
-|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|-----------------------------------------------------|---------------|---------------|---------------------|
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------- | ------------- | ------------- | ------------------- |
 | Inserts             | Append to valid keys                                                                                                                                                                                                                                                                                                                |         |                                                     |               |               |                     |
 | Updates             | Append to valid keys and generate a random index to pick the update key based on a distribution.                                                                                                                                                                                                                                    |         |                                                     |               |               |                     |
 | Deletes             | Append to valid keys. Delete by swapping an element to `None` in the `Vec`                                                                                                                                                                                                                                                          |         |                                                     |               |               |                     |

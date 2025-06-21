@@ -4,17 +4,17 @@ use anyhow::{Context, Result};
 use rand::{Rng, SeedableRng};
 
 use crate::keyset::Key;
-use rand::distr::weighted::WeightedIndex;
 use rand::distr::Alphanumeric;
+use rand::distr::weighted::WeightedIndex;
 use rand_distr::Distribution as _;
 use rand_xoshiro::Xoshiro256Plus;
 use schemars::JsonSchema;
 use schemars::Schema;
 use schemars::SchemaGenerator;
 use statrs::function::gamma::gamma;
+use statrs::function::harmonic::gen_harmonic;
 use std::borrow::Cow;
 use std::io::Write;
-use statrs::function::harmonic::gen_harmonic;
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -154,7 +154,6 @@ impl JsonSchema for Distribution {
     }
 }
 
-
 impl Distribution {
     fn evaluate(&self, rng: &mut impl Rng) -> f32 {
         return match self {
@@ -185,9 +184,7 @@ impl Distribution {
 
             Self::Poisson { lambda, .. } => *lambda,
 
-            Self::Weibull { scale, shape, .. } => {
-                *scale * gamma(1.0 + 1.0 / *shape as f64) as f32
-            }
+            Self::Weibull { scale, shape, .. } => *scale * gamma(1.0 + 1.0 / *shape as f64) as f32,
             Self::Pareto { scale, shape, .. } => (shape * scale) / (shape - 1.0),
         };
     }
@@ -237,15 +234,13 @@ pub struct Weight {
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum StringExprConfig {
-    Constant(String),
-    Sampled {
-        /// The distribution to use for sampling the string.
-        // distribution: Distribution,
+pub enum StringExprInnerConfig {
+    Uniform {
         /// The length of the string to sample.
-        length: NumberExpr,
+        len: NumberExpr,
+        #[serde(default)]
         /// The character set to use for sampling the string.
-        character_set: CharacterSet,
+        character_set: Option<CharacterSet>,
     },
     Weighted(Vec<Weight>),
     Segmented {
@@ -254,24 +249,23 @@ pub enum StringExprConfig {
         segments: Vec<StringExpr>,
     },
     HotRange {
-        length: usize,
-        count: usize,
+        len: usize,
+        amount: usize,
         probability: f32,
     },
 }
 
 #[derive(serde::Deserialize, Clone, Debug)]
-#[serde(try_from = "StringExprConfig")]
-pub enum StringExpr {
-    Constant(String),
+#[serde(try_from = "StringExprInnerConfig")]
+pub enum StringExprInner {
     Uniform {
         /// The distribution to use for sampling the string.
         // distribution: Distribution,
         /// The length of the string to sample.
         len: NumberExpr,
-        #[serde(default = "CharacterSet::default")]
+        #[serde(default)]
         /// The character set to use for sampling the string.
-        character_set: CharacterSet,
+        character_set: Option<CharacterSet>,
     },
     Weighted {
         items: Vec<Weight>,
@@ -283,65 +277,69 @@ pub enum StringExpr {
         segments: Vec<StringExpr>,
     },
     HotRange {
-        length: usize,
-        count: usize,
+        len: usize,
+        amount: usize,
         probability: f32,
         hot_ranges: Vec<Key>,
     },
 }
 
-impl JsonSchema for StringExpr {
+impl JsonSchema for StringExprInner {
     fn schema_name() -> Cow<'static, str> {
-        "StringExpr".into()
+        "StringExprInner".into()
     }
 
     fn json_schema(generator: &mut SchemaGenerator) -> Schema {
-        return StringExprConfig::json_schema(generator);
+        return StringExprInnerConfig::json_schema(generator);
     }
 }
+#[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case", untagged)]
+pub enum StringExpr {
+    Constant(String),
+    Inner(StringExprInner),
+}
 
-impl TryFrom<StringExprConfig> for StringExpr {
+impl TryFrom<StringExprInnerConfig> for StringExprInner {
     type Error = anyhow::Error;
 
-    fn try_from(value: StringExprConfig) -> Result<Self, Self::Error> {
+    fn try_from(value: StringExprInnerConfig) -> Result<Self, Self::Error> {
+        use StringExprInnerConfig as S;
         return match value {
-            StringExprConfig::Constant(val) => Ok(Self::Constant(val)),
-            StringExprConfig::Sampled {
-                // distribution,
-                length,
+            S::Uniform {
+                len: length,
                 character_set,
             } => Ok(Self::Uniform {
-                // distribution,
                 len: length,
                 character_set,
             }),
-            StringExprConfig::Weighted(items) => {
+            S::Weighted(items) => {
                 let weights = items.iter().map(|w| w.weight).collect::<Vec<_>>();
                 let distr = WeightedIndex::new(&weights).context("Building weighted index")?;
                 Ok(Self::Weighted { items, distr })
             }
-            StringExprConfig::Segmented {
+            S::Segmented {
                 separator,
                 segments,
             } => Ok(Self::Segmented {
                 separator,
                 segments,
             }),
-            StringExprConfig::HotRange {
-                length,
-                count,
+            S::HotRange {
+                len,
+                amount,
                 probability,
             } => {
                 let mut rng = Xoshiro256Plus::from_os_rng();
                 let rng_ref = &mut rng;
-                let mut hot_ranges = Vec::with_capacity(count);
-                for _ in 0..count {
-                    let key: Box<[u8]> = rng_ref.sample_iter(Alphanumeric).take(length).collect();
+                let mut hot_ranges = Vec::with_capacity(amount);
+                for _ in 0..amount {
+                    let key: Box<[u8]> = rng_ref.sample_iter(Alphanumeric).take(len).collect();
                     hot_ranges.push(key);
                 }
                 Ok(Self::HotRange {
-                    length,
-                    count,
+                    len,
+                    amount,
                     probability,
                     hot_ranges,
                 })
@@ -351,115 +349,134 @@ impl TryFrom<StringExprConfig> for StringExpr {
 }
 
 impl StringExpr {
-    pub fn generate(&self, rng: &mut impl Rng) -> Key {
+    pub fn generate(&self, rng: &mut impl Rng, character_set_parent: Option<CharacterSet>) -> Key {
         return match self {
             Self::Constant(val) => Key::from(val.as_bytes()),
-            Self::Uniform {
-                // distribution: _,
-                len: length,
-                character_set,
-            } => {
-                let len = length.evaluate(rng) as usize;
-                let distr = match character_set {
-                    CharacterSet::Alphanumeric => Alphanumeric,
-                };
-                Key::from_iter(rng.sample_iter(distr).take(len))
-            }
-            Self::Weighted { items, distr } => {
-                let random_value = rng.sample(distr);
-                let item = &items[random_value];
-                item.value.generate(rng)
-            }
-            Self::Segmented {
-                separator,
-                segments,
-            } => {
-                let mut buf = Vec::new();
-                for (i, segment) in segments.iter().enumerate() {
-                    segment
-                        .write_all(&mut buf, rng)
-                        .context("Writing weighted string")
-                        .expect("to be able to write to a vec");
-                    if i != segments.len() - 1 {
-                        buf.extend(separator.as_bytes());
+            Self::Inner(inner) => {
+                use StringExprInner as S;
+                match inner {
+                    S::Uniform {
+                        // distribution: _,
+                        len: length,
+                        character_set,
+                    } => {
+                        let character_set =
+                            character_set.or(character_set_parent).unwrap_or_default();
+                        let len = length.evaluate(rng) as usize;
+                        let distr = match character_set {
+                            CharacterSet::Alphanumeric => Alphanumeric,
+                        };
+                        Key::from_iter(rng.sample_iter(distr).take(len))
+                    }
+                    S::Weighted { items, distr } => {
+                        let random_value = rng.sample(distr);
+                        let item = &items[random_value];
+                        item.value.generate(rng, None)
+                    }
+                    S::Segmented {
+                        separator,
+                        segments,
+                    } => {
+                        let mut buf = Vec::new();
+                        for (i, segment) in segments.iter().enumerate() {
+                            segment
+                                .write_all(&mut buf, rng, None)
+                                .context("Writing weighted string")
+                                .expect("to be able to write to a vec");
+                            if i != segments.len() - 1 {
+                                buf.extend(separator.as_bytes());
+                            }
+                        }
+                        Key::from(buf)
+                    }
+                    S::HotRange {
+                        hot_ranges,
+                        probability,
+                        len,
+                        ..
+                    } => {
+                        let is_hot = rng.random_bool(*probability as f64);
+                        return if is_hot {
+                            let index = rng.random_range(0..hot_ranges.len());
+                            hot_ranges[index].clone()
+                        } else {
+                            let key: Box<[u8]> = rng.sample_iter(Alphanumeric).take(*len).collect();
+                            Key::from(key)
+                        };
                     }
                 }
-                Key::from(buf)
-            }
-            Self::HotRange {
-                hot_ranges,
-                probability,
-                length,
-                ..
-            } => {
-                let is_hot = rng.random_bool(*probability as f64);
-                return if is_hot {
-                    let index = rng.random_range(0..hot_ranges.len());
-                    hot_ranges[index].clone()
-                } else {
-                    let key: Box<[u8]> = rng.sample_iter(Alphanumeric).take(*length).collect();
-                    Key::from(key)
-                };
             }
         };
     }
     /// Evaluates the expression to a value.
-    pub fn write_all(&self, writer: &mut impl Write, rng: &mut impl Rng) -> Result<()> {
+    pub fn write_all(
+        &self,
+        writer: &mut impl Write,
+        rng: &mut impl Rng,
+        character_set_parent: Option<CharacterSet>,
+    ) -> Result<()> {
         match self {
             Self::Constant(val) => writer
                 .write_all(val.as_bytes())
                 .context("Writing constant string"),
-            Self::Uniform {
-                // distribution: _,
-                len: length,
-                character_set,
-            } => {
-                let len = length.evaluate(rng) as usize;
-                let distr = match character_set {
-                    CharacterSet::Alphanumeric => Alphanumeric,
-                };
-                for ch in rng.sample_iter(distr).take(len) {
-                    writer.write_all(&[ch]).context("Writing sampled string")?;
+            Self::Inner(inner) => {
+                use StringExprInner as S;
+                match inner {
+                    S::Uniform {
+                        // distribution: _,
+                        len: length,
+                        character_set,
+                    } => {
+                        let character_set =
+                            character_set.or(character_set_parent).unwrap_or_default();
+                        let len = length.evaluate(rng) as usize;
+                        let distr = match character_set {
+                            CharacterSet::Alphanumeric => Alphanumeric,
+                        };
+                        for ch in rng.sample_iter(distr).take(len) {
+                            writer.write_all(&[ch]).context("Writing sampled string")?;
+                        }
+                        return Ok(());
+                    }
+                    S::Weighted { items, distr } => {
+                        let random_value = rng.sample(distr);
+                        let item = &items[random_value];
+                        return item
+                            .value
+                            .write_all(writer, rng, None)
+                            .context("Writing weighted string");
+                    }
+                    S::Segmented {
+                        separator,
+                        segments,
+                    } => {
+                        for segment in segments {
+                            segment
+                                .write_all(writer, rng, None)
+                                .context("Writing weighted string")?;
+                            writer
+                                .write_all(separator.as_bytes())
+                                .context("Writing separator")?;
+                        }
+                        return Ok(());
+                    }
+                    S::HotRange {
+                        hot_ranges,
+                        probability,
+                        len,
+                        ..
+                    } => {
+                        let is_hot = rng.random_bool(*probability as f64);
+                        let key = if is_hot {
+                            let index = rng.random_range(0..hot_ranges.len());
+                            hot_ranges[index].clone()
+                        } else {
+                            let key: Box<[u8]> = rng.sample_iter(Alphanumeric).take(*len).collect();
+                            Key::from(key)
+                        };
+                        writer.write_all(&key).context("Writing weighted string")
+                    }
                 }
-                return Ok(());
-            }
-            Self::Weighted { items, distr } => {
-                let random_value = rng.sample(distr);
-                let item = &items[random_value];
-                return item
-                    .value
-                    .write_all(writer, rng)
-                    .context("Writing weighted string");
-            }
-            Self::Segmented {
-                separator,
-                segments,
-            } => {
-                for segment in segments {
-                    segment
-                        .write_all(writer, rng)
-                        .context("Writing weighted string")?;
-                    writer
-                        .write_all(separator.as_bytes())
-                        .context("Writing separator")?;
-                }
-                return Ok(());
-            }
-            Self::HotRange {
-                hot_ranges,
-                probability,
-                length,
-                ..
-            } => {
-                let is_hot = rng.random_bool(*probability as f64);
-                let key = if is_hot {
-                    let index = rng.random_range(0..hot_ranges.len());
-                    hot_ranges[index].clone()
-                } else {
-                    let key: Box<[u8]> = rng.sample_iter(Alphanumeric).take(*length).collect();
-                    Key::from(key)
-                };
-                writer.write_all(&key).context("Writing weighted string")
             }
         }
     }
@@ -474,6 +491,8 @@ pub struct Inserts {
     pub key: StringExpr,
     /// Value
     pub val: StringExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -483,13 +502,30 @@ pub struct Updates {
     pub amount: NumberExpr,
     /// Value
     pub val: StringExpr,
+
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
+#[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
+/// Merges (read-modify-write) specification.
+pub struct Merges {
+    /// Number of merges
+    pub amount: NumberExpr,
+    /// Value
+    pub val: StringExpr,
+
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
+}
+
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Non-empty point deletes specification.
 pub struct PointDeletes {
     /// Number of non-empty point deletes
     pub amount: NumberExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -499,6 +535,8 @@ pub struct EmptyPointDeletes {
     pub amount: NumberExpr,
     /// Key
     pub key: StringExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Range deletes specification.
@@ -507,6 +545,8 @@ pub struct RangeDeletes {
     pub amount: NumberExpr,
     /// Selectivity of range deletes. Based off of the range of valid keys, not the full key space.
     pub selectivity: NumberExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -514,6 +554,8 @@ pub struct RangeDeletes {
 pub struct PointQueries {
     /// Number of point queries
     pub amount: NumberExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -523,6 +565,8 @@ pub struct EmptyPointQueries {
     pub amount: NumberExpr,
     /// Key
     pub key: StringExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -532,18 +576,23 @@ pub struct RangeQueries {
     pub amount: NumberExpr,
     /// Selectivity of range queries. Based off of the range of valid keys, not the full key-space.
     pub selectivity: NumberExpr,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 pub struct WorkloadSpecGroup {
     pub inserts: Option<Inserts>,
     pub updates: Option<Updates>,
+    pub merges: Option<Merges>,
     pub point_deletes: Option<PointDeletes>,
     pub empty_point_deletes: Option<EmptyPointDeletes>,
     pub range_deletes: Option<RangeDeletes>,
     pub point_queries: Option<PointQueries>,
     pub empty_point_queries: Option<EmptyPointQueries>,
     pub range_queries: Option<RangeQueries>,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
 }
 
 // impl WorkloadSpecGroup {
@@ -592,7 +641,7 @@ pub struct WorkloadSpecGroup {
 //     }
 // }
 
-#[derive(serde::Deserialize, JsonSchema, Default, Clone, Debug)]
+#[derive(serde::Deserialize, JsonSchema, Default, Copy, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum CharacterSet {
     #[default]
@@ -614,8 +663,8 @@ pub struct WorkloadSpecSection {
     /// E.g., non-empty point queries will use a key from an insert in this group.
     pub groups: Vec<WorkloadSpecGroup>,
     /// The domain from which the keys will be created from.
-    #[serde(default = "CharacterSet::default")]
-    pub character_set: CharacterSet,
+    #[serde(default)]
+    pub character_set: Option<CharacterSet>,
     /// The domain from which the keys will be created from.
     #[serde(default = "KeyDistribution::default")]
     pub key_distribution: KeyDistribution,
@@ -658,6 +707,9 @@ pub struct WorkloadSpecSection {
 pub struct WorkloadSpec {
     /// Sections of a workload where a key from one will (probably) not appear in another.
     pub sections: Vec<WorkloadSpecSection>,
+    /// The domain from which the keys will be created from.
+    #[serde(default = "CharacterSet::default")]
+    pub character_set: CharacterSet,
 }
 
 // impl WorkloadSpec {
