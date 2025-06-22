@@ -5,7 +5,7 @@
 #![allow(clippy::needless_return)]
 #![allow(dead_code)]
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use rand::distr::Alphanumeric;
 use rand::prelude::SliceRandom;
 use rand::{Rng, SeedableRng};
@@ -14,6 +14,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::iter::repeat_n;
 use std::path::PathBuf;
+use tracing::debug;
 
 mod keyset;
 pub mod spec;
@@ -150,8 +151,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
         for group in &section.groups {
             let rng_ref = &mut rng;
             let mut markers: Vec<Op> = Vec::with_capacity(0 /*group.operation_count()*/);
-            let character_set = group.character_set.or(section.character_set).or(workload.character_set);
-
+            let character_set = group
+                .character_set
+                .or(section.character_set)
+                .or(workload.character_set);
 
             let insert_count = group
                 .inserts
@@ -190,15 +193,28 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                 .as_ref()
                 .map_or(0, |drs| drs.amount.evaluate(rng_ref) as usize);
 
+            debug!(
+                ?insert_count,
+                ?update_count,
+                ?merge_count,
+                ?delete_point_count,
+                ?delete_point_empty_count,
+                ?delete_range_count,
+                ?query_point_count,
+                ?query_point_empty_count,
+                ?query_range_count
+            );
+
             let more_delete_point_than_keys = delete_point_count > keys_valid.len();
             if more_delete_point_than_keys {
                 bail!("Cannot have more point deletes than existing valid keys.");
             }
 
             let mut key_pool = if let Some(sorted) = &group.sorted {
-                let is = group.inserts.as_ref().ok_or_else(|| {
-                    anyhow!("Insert spec must exist if sorted config exists")
-                })?;
+                let is = group
+                    .inserts
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("Insert spec must exist if sorted config exists"))?;
                 let mut pool = Vec::with_capacity(insert_count);
                 for _ in 0..insert_count {
                     let key = is.key.generate(rng_ref, is.character_set.or(character_set));
@@ -214,8 +230,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                     let idx = rng_ref.random_range(0..pool.len()) as isize;
                     let l = (sorted.l.evaluate(rng_ref) as isize)
                         .clamp(-idx, pool.len() as isize - 1 - idx);
-                    let x = pool.swap(idx as usize, (idx + l) as usize);
-                    x
+                    pool.swap(idx as usize, (idx + l) as usize);
                 }
                 Some(pool)
             } else {
@@ -296,7 +311,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         if keys_valid.is_empty() {
                             bail!("Cannot have updates when there are no valid keys.");
                         }
-                        let key = keys_valid.get_random(rng_ref);
+                        let key = keys_valid.get_random(rng_ref, &us.selection);
                         AsciiOperationFormatter::write_update(
                             writer,
                             rng_ref,
@@ -312,7 +327,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         if keys_valid.is_empty() {
                             bail!("Cannot have merges when there are no valid keys.");
                         }
-                        let key = keys_valid.get_random(rng_ref);
+                        let key = keys_valid.get_random(rng_ref, &ms.selection);
                         AsciiOperationFormatter::write_merge(
                             writer,
                             rng_ref,
@@ -322,9 +337,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         )?;
                     }
                     Op::PointDelete => {
-                        // let idx = rng_ref.random_range(0..keys_valid.len());
-                        // let key = keys_valid.remove(idx);
-                        let key = keys_valid.remove_random(rng_ref);
+                        let pds = group.point_deletes.as_ref().ok_or_else(|| {
+                            anyhow!("Point delete marker can only appear when updates is not None")
+                        })?;
+                        let key = keys_valid.remove_random(rng_ref, &pds.selection);
 
                         AsciiOperationFormatter::write_point_delete(writer, &key)?;
                     }
@@ -332,7 +348,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         if keys_valid.is_empty() {
                             bail!("Cannot have point queries when there are no valid keys.");
                         }
-                        let key = keys_valid.get_random(rng_ref);
+                        let pqs = group.point_queries.as_ref().ok_or_else(|| {
+                            anyhow!("Point query marker can only appear when updates is not None")
+                        })?;
+                        let key = keys_valid.get_random(rng_ref, &pqs.selection);
                         AsciiOperationFormatter::write_point_query(writer, key)?
                     }
                     Op::PointDeleteEmpty => {
@@ -340,7 +359,9 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             anyhow!("Empty point delete marker can only appear when empty_point_deletes is not None")
                         })?;
                         let key = loop {
-                            let k = epd.key.generate(rng_ref, epd.character_set.or(character_set));
+                            let k = epd
+                                .key
+                                .generate(rng_ref, epd.character_set.or(character_set));
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
@@ -353,7 +374,9 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             anyhow!("Empty point query marker can only appear when empty_point_queries is not None")
                         })?;
                         let key = loop {
-                            let k = epq.key.generate(rng_ref, epq.character_set.or(character_set));
+                            let k = epq
+                                .key
+                                .generate(rng_ref, epq.character_set.or(character_set));
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
@@ -372,23 +395,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         }
 
                         keys_valid.sort();
-                        // It would be better to use `from` and `try_from` instead of `as` here.
-                        // Maybe the `num_traits` crate could help.
-                        // https://doc.rust-lang.org/reference/expressions/operator-expr.html#r-expr.as.numeric.float-as-int
-                        // let selectivity = match rqs.selectivity {
-                        //     spec::Expr::Constant(s) => s,
-                        //     spec::Expr::Sampled(distribution) => distribution.evaluate(rng_ref),
-                        // }:
-                        let num_items = (rqs.selectivity.evaluate(rng_ref).clamp(0.0, 1.0)
-                            * (keys_valid.len() as f32).floor())
-                            as usize;
-                        let start_range = 0..keys_valid.len() - num_items;
-
-                        let start_idx = rng_ref.random_range(start_range);
-                        let key1 = keys_valid.get(start_idx).expect("index to be in range");
-                        let key2 = keys_valid
-                            .get(start_idx + num_items)
-                            .expect("index to be in range");
+                        let (key1, key2) = keys_valid.get_range_random(
+                            rqs.selectivity.evaluate(rng_ref),
+                            rng_ref,
+                            &rqs.selection,
+                        );
 
                         AsciiOperationFormatter::write_range_query(writer, key1, key2)?
                     }
@@ -403,28 +414,12 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         }
 
                         keys_valid.sort();
-                        let x = rds.selectivity.evaluate(rng_ref).clamp(0.0, 1.0);
-                        let num_items = (x
-                            * (keys_valid.len() as f32).floor())
-                            as usize;
-                        let start_range = 0..keys_valid.len() - num_items;
-
-                        // let start_idx = rng_ref.random_range(start_range);
-                        // let key1 = keys_valid.get_random(start_range);
-                        let (key1, start_idx) = loop {
-                            let start_idx = rng_ref.random_range(start_range.clone());
-                            match keys_valid.get(start_idx) {
-                                Some(key) => break (key, start_idx),
-                                None => continue,
-                            }
-                        };
-                        let key2 = keys_valid
-                            .get(start_idx + num_items)
-                            .expect("index to be in range");
-
-                        AsciiOperationFormatter::write_range_delete(writer, key1, key2)?;
-
-                        keys_valid.remove_range(start_idx..start_idx + num_items);
+                        let (key1, key2) = keys_valid.remove_range_random(
+                            rds.selectivity.evaluate(rng_ref),
+                            rng_ref,
+                            &rds.selection,
+                        );
+                        AsciiOperationFormatter::write_range_delete(writer, &key1, &key2)?;
                     }
                 }
             }

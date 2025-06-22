@@ -4,8 +4,8 @@ use anyhow::{Context, Result};
 use rand::{Rng, SeedableRng};
 
 use crate::keyset::Key;
-use rand::distr::{Alphabetic, Alphanumeric};
 use rand::distr::weighted::WeightedIndex;
+use rand::distr::{Alphabetic, Alphanumeric};
 use rand_distr::Distribution as _;
 use rand_xoshiro::Xoshiro256Plus;
 use schemars::JsonSchema;
@@ -122,7 +122,10 @@ impl TryFrom<DistributionConfig> for Distribution {
                 s,
                 distr: rand_distr::Zipf::new(n as f32, s)?,
             },
-            DC::LogNormal { mean: mu, std_dev: sigma } => Self::LogNormal {
+            DC::LogNormal {
+                mean: mu,
+                std_dev: sigma,
+            } => Self::LogNormal {
                 mean: mu,
                 std_dev: sigma,
                 distr: rand_distr::LogNormal::new(mu, sigma)?,
@@ -163,7 +166,7 @@ impl JsonSchema for Distribution {
 }
 
 impl Distribution {
-    fn evaluate(&self, rng: &mut impl Rng) -> f32 {
+    pub fn evaluate(&self, rng: &mut impl Rng) -> f32 {
         return match self {
             Self::Uniform { distr, .. } => distr.sample(rng),
             Self::Normal { distr, .. } => distr.sample(rng),
@@ -177,7 +180,7 @@ impl Distribution {
         };
     }
 
-    fn expected_value(&self) -> f32 {
+    pub fn expected_value(&self) -> f32 {
         return match self {
             Self::Uniform { min, max, .. } => min + max / 2.0,
             Self::Normal { mean, .. } => *mean,
@@ -188,12 +191,27 @@ impl Distribution {
                 let hs_minus1 = gen_harmonic(*n as u64, (*s - 1.0) as f64);
                 return (hs_minus1 / hs) as f32;
             }
-            Self::LogNormal { mean: mu, std_dev: sigma, .. } => (mu + 0.5 * sigma.powi(2)).exp(),
+            Self::LogNormal {
+                mean: mu,
+                std_dev: sigma,
+                ..
+            } => (mu + 0.5 * sigma.powi(2)).exp(),
 
             Self::Poisson { lambda, .. } => *lambda,
 
             Self::Weibull { scale, shape, .. } => *scale * gamma(1.0 + 1.0 / *shape as f64) as f32,
             Self::Pareto { scale, shape, .. } => (shape * scale) / (shape - 1.0),
+        };
+    }
+
+    fn default_key_selection() -> Self {
+        let min = 0.;
+        let max = 1.;
+        return Self::Uniform {
+            min,
+            max,
+            distr: rand_distr::Uniform::new(min, max)
+                .expect("to be able to construct a uniform distribution"),
         };
     }
 }
@@ -372,9 +390,15 @@ impl StringExpr {
                             character_set.or(character_set_parent).unwrap_or_default();
                         let len = length.evaluate(rng) as usize;
                         match character_set {
-                            CharacterSet::Alphanumeric => Key::from_iter(rng.sample_iter(Alphanumeric).take(len)),
-                            CharacterSet::Alphabetic => Key::from_iter(rng.sample_iter(Alphabetic).take(len)),
-                            CharacterSet::Numeric => Key::from_iter(rng.sample_iter(Numeric).take(len)),
+                            CharacterSet::Alphanumeric => {
+                                Key::from_iter(rng.sample_iter(Alphanumeric).take(len))
+                            }
+                            CharacterSet::Alphabetic => {
+                                Key::from_iter(rng.sample_iter(Alphabetic).take(len))
+                            }
+                            CharacterSet::Numeric => {
+                                Key::from_iter(rng.sample_iter(Numeric).take(len))
+                            }
                         }
                     }
                     S::Weighted { items, distr } => {
@@ -520,10 +544,14 @@ pub struct Updates {
     pub amount: NumberExpr,
     /// Value
     pub val: StringExpr,
+    /// Key selection strategy
+    #[serde(default = "Distribution::default_key_selection")]
+    pub selection: Distribution,
 
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
+
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Merges (read-modify-write) specification.
 pub struct Merges {
@@ -531,19 +559,22 @@ pub struct Merges {
     pub amount: NumberExpr,
     /// Value
     pub val: StringExpr,
+    /// Key selection strategy
+    #[serde(default = "Distribution::default_key_selection")]
+    pub selection: Distribution,
 
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
-
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Non-empty point deletes specification.
 pub struct PointDeletes {
     /// Number of non-empty point deletes
     pub amount: NumberExpr,
-    #[serde(default)]
-    pub character_set: Option<CharacterSet>,
+    /// Key selection strategy
+    #[serde(default = "Distribution::default_key_selection")]
+    pub selection: Distribution,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -563,6 +594,9 @@ pub struct RangeDeletes {
     pub amount: NumberExpr,
     /// Selectivity of range deletes. Based off of the range of valid keys, not the full key space.
     pub selectivity: NumberExpr,
+    /// Key selection strategy of the start key
+    #[serde(default = "Distribution::default_key_selection")]
+    pub selection: Distribution,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -572,6 +606,9 @@ pub struct RangeDeletes {
 pub struct PointQueries {
     /// Number of point queries
     pub amount: NumberExpr,
+    /// Key selection strategy of the start key
+    #[serde(default = "Distribution::default_key_selection")]
+    pub selection: Distribution,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -594,10 +631,12 @@ pub struct RangeQueries {
     pub amount: NumberExpr,
     /// Selectivity of range queries. Based off of the range of valid keys, not the full key-space.
     pub selectivity: NumberExpr,
+    /// Key selection strategy of the start key
+    #[serde(default = "Distribution::default_key_selection")]
+    pub selection: Distribution,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
-
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 pub struct Sorted {

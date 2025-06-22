@@ -4,6 +4,5 @@ resolver = "2"
 members = ["tectonic", "tectonic-cli"]
 
 [workspace.dependencies]
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing = "0.1.41"
-tracing-subscriber = "0.3.19"
-

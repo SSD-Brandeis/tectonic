@@ -3,6 +3,8 @@ use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use std::{fs, path::PathBuf};
 use tectonic::{generate_workload, generate_workload_spec_schema};
+use tracing::debug;
+use tracing_subscriber::EnvFilter;
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
@@ -34,6 +36,11 @@ enum Command {
 
 fn main() -> Result<()> {
     let args = Cli::parse();
+    tracing_subscriber::fmt()
+        // .with_env_filter(EnvFilter::new("debug"))
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+    debug!("hi");
 
     match args.command {
         Command::Generate {
