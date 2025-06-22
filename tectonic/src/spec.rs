@@ -526,8 +526,8 @@ impl StringExpr {
 
 #[derive(serde::Deserialize, JsonSchema, Copy, Clone, Debug, Default)]
 pub enum SortBy {
-    #[default]
     Value,
+    #[default]
     InsertOrder,
 }
 
