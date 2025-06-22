@@ -1,0 +1,52 @@
+{
+  "$schema": "../workload_schema.json",
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 1000,
+            "key": {
+              "segmented": {
+                "segments": ["user", { "uniform": { "len": 4 } }],
+                "separator": ""
+              }
+            },
+            "val": {
+              "uniform": { "len": 1024 }
+            }
+          }
+        },
+        {
+          "range_queries": {
+            "amount": 950,
+            "selectivity": {
+              "uniform": {
+                "min": 0,
+                "max": 0.1
+              }
+            },
+            "selection": {
+              "beta": {
+                "alpha": 0.1,
+                "beta": 5
+              }
+            }
+          },
+          "inserts": {
+            "amount": 50,
+            "key": {
+              "segmented": {
+                "segments": ["user", { "uniform": { "len": 4 } }],
+                "separator": ""
+              }
+            },
+            "val": {
+              "uniform": { "len": 1024 }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

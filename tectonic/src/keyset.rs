@@ -3,7 +3,7 @@
 
 use rand::Rng;
 
-use crate::spec::{Distribution, SortBy};
+use crate::spec::Distribution;
 use bloom::{ASMS, BloomFilter};
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
@@ -76,7 +76,10 @@ pub trait KeySet {
 
     fn contains(&self, key: &Key) -> bool;
 
-    fn sort(&mut self, sort_by: SortBy);
+    fn sort(
+        &mut self,
+        // sort_by: SortBy
+    );
 }
 
 pub struct VecKeySet {
@@ -131,15 +134,10 @@ impl KeySet for VecKeySet {
         return self.keys.contains(key);
     }
 
-    fn sort(&mut self, sort_by: SortBy) {
-        match sort_by {
-            SortBy::Value => {
-                if !self.sorted {
-                    self.keys.sort();
-                    self.sorted = true;
-                }
-            }
-            SortBy::InsertOrder => (),
+    fn sort(&mut self) {
+        if !self.sorted {
+            self.keys.sort();
+            self.sorted = true;
         }
     }
 }
@@ -284,15 +282,10 @@ impl KeySet for VecHashSetKeySet {
         return self.key_set.contains(key);
     }
 
-    fn sort(&mut self, sort_by: SortBy) {
-        match sort_by {
-            SortBy::Value => {
-                if !self.sorted {
-                    self.keys.sort();
-                    self.sorted = true;
-                }
-            }
-            SortBy::InsertOrder => (),
+    fn sort(&mut self) {
+        if !self.sorted {
+            self.keys.sort();
+            self.sorted = true;
         }
     }
 }
@@ -359,15 +352,10 @@ impl KeySet for VecBloomFilterKeySet {
         return self.bf.contains(key);
     }
 
-    fn sort(&mut self, sort_by: SortBy) {
-        match sort_by {
-            SortBy::Value => {
-                if !self.sorted {
-                    self.keys.sort();
-                    self.sorted = true;
-                }
-            }
-            SortBy::InsertOrder => (),
+    fn sort(&mut self) {
+        if !self.sorted {
+            self.keys.sort();
+            self.sorted = true;
         }
     }
 }
@@ -444,18 +432,13 @@ impl KeySet for VecHashMapIndexKeySet {
         return self.key_to_index.contains_key(key);
     }
 
-    fn sort(&mut self, sort_by: SortBy) {
-        match sort_by {
-            SortBy::Value => {
-                if !self.sorted {
-                    self.keys.sort();
-                    self.key_to_index.clear();
-                    for (i, key) in self.keys.iter().enumerate() {
-                        self.key_to_index.insert(key.clone(), i);
-                    }
-                }
+    fn sort(&mut self) {
+        if !self.sorted {
+            self.keys.sort();
+            self.key_to_index.clear();
+            for (i, key) in self.keys.iter().enumerate() {
+                self.key_to_index.insert(key.clone(), i);
             }
-            SortBy::InsertOrder => (),
         }
     }
 }
@@ -527,11 +510,11 @@ impl KeySet for BTreeSetKeySet {
         return self.keys.contains(key);
     }
 
-    fn sort(&mut self, sort_by: SortBy) {
+    fn sort(&mut self) {
         /* no op -- already sorted */
-        match sort_by {
-            SortBy::Value => (),
-            SortBy::InsertOrder => (),
-        }
+        // match sort_by {
+        //     SortBy::Value => (),
+        //     SortBy::InsertOrder => (),
+        // }
     }
 }

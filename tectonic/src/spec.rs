@@ -524,13 +524,6 @@ impl StringExpr {
     }
 }
 
-#[derive(serde::Deserialize, JsonSchema, Copy, Clone, Debug, Default)]
-pub enum SortBy {
-    Value,
-    #[default]
-    InsertOrder,
-}
-
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 /// Inserts specification.
 pub struct Inserts {
@@ -554,9 +547,8 @@ pub struct Updates {
     /// Key selection strategy
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
-    /// Key sort order
-    pub sort_by: SortBy,
-
+    ///// Key sort order
+    //pub sort_by: SortBy,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -571,9 +563,8 @@ pub struct Merges {
     /// Key selection strategy
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
-    /// Key sort order
-    pub sort_by: SortBy,
-
+    ///// Key sort order
+    //pub sort_by: SortBy,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -586,8 +577,8 @@ pub struct PointDeletes {
     /// Key selection strategy
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
-    /// Key sort order
-    pub sort_by: SortBy,
+    ///// Key sort order
+    //pub sort_by: SortBy,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
@@ -610,9 +601,8 @@ pub struct RangeDeletes {
     /// Key selection strategy of the start key
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
-    /// Key sort order
-    pub sort_by: SortBy,
-
+    ///// Key sort order
+    //pub sort_by: SortBy,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -625,8 +615,8 @@ pub struct PointQueries {
     /// Key selection strategy of the start key
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
-    /// Key sort order
-    pub sort_by: SortBy,
+    ///// Key sort order
+    //pub sort_by: SortBy,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -652,8 +642,8 @@ pub struct RangeQueries {
     /// Key selection strategy of the start key
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
-    /// Key sort order
-    pub sort_by: SortBy,
+    ///// Key sort order
+    //pub sort_by: SortBy,
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
 }
@@ -752,9 +742,6 @@ pub struct WorkloadSpecSection {
     /// The domain from which the keys will be created from.
     #[serde(default)]
     pub character_set: Option<CharacterSet>,
-    /// The domain from which the keys will be created from.
-    #[serde(default = "KeyDistribution::default")]
-    pub key_distribution: KeyDistribution,
     /// Whether to skip the check that a generated key is in the valid key set for inserts and empty point queries/deletes.
     ///
     /// This is useful when the keyspace is much larger than the number of keys being generated, as it can greatly decrease generation time.
