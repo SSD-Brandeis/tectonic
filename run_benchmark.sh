@@ -8,6 +8,13 @@ mkdir -p "$LOG_DIR"
 
 WORKLOADS=(
   "phase_workload"
+  # "interleave_wl"
+  "varied_sortedness"
+  # "kl"
+  # "slowly_shifting"
+  # "abruptly_shifting"
+  # "varied_kv_length"
+  # "hot_key"
   # "1m_i"
   # "hkr"
 

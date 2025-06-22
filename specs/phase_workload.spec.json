@@ -1,30 +1,28 @@
 {
-  "$schema": "../workload_schema.json",
+  "$schema": "./workload_schema.json",
   "character_set": "alphanumeric",
   "sections": [
     {
       "groups": [
         {
           "inserts": {
-            "amount": 9000000,
+            "amount": 900000,
             "key": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
+              "uniform": {
+                "len": 128
               }
             },
             "val": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
+              "uniform": {
+                "len": 128
               }
             }
           },
           "point_queries": {
-            "amount": 1000000,
-            "key": {
+            "amount": 100000,
+            "selection": {
               "zipf": {
-                "n": 1000000,
+                "n": 100000,
                 "s": 1.2
               }
             }
@@ -36,28 +34,20 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1000000,
+            "amount": 100000,
             "key": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
+              "uniform": {
+                "len": 128
               }
             },
             "val": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
+              "uniform": {
+                "len": 128
               }
             }
           },
           "point_queries": {
-            "amount": 9000000,
-            "key": {
-              "uniform": {
-                "min": 0,
-                "max": 999999
-              }
-            }
+            "amount": 900000
           }
         }
       ]
@@ -66,24 +56,22 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1000000,
+            "amount": 100000,
             "key": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
+              "uniform": {
+                "len": 128
               }
             },
             "val": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
+              "uniform": {
+                "len": 128
               }
             }
           },
           "range_queries": {
-            "amount": 5000000,
+            "amount": 500000,
             "selectivity": 0.1,
-            "key": {
+            "selection": {
               "log_normal": {
                 "mean": 10,
                 "std_dev": 2
@@ -91,26 +79,19 @@
             }
           },
           "point_queries": {
-            "amount": 3000000,
-            "key": {
-              "normal": {
-                "mean": 500000,
-                "std_dev": 100000
-              }
-            }
+            "amount": 300000
           },
           "updates": {
-            "amount": 1000000,
-            "val": {
-              "sampled": {
-                "length": 128,
-                "character_set": "alphanumeric"
-              }
-            },
-            "key": {
+            "amount": 100000,
+            "selection": {
               "beta": {
                 "alpha": 2,
                 "beta": 5
+              }
+            },
+            "val": {
+              "uniform": {
+                "len": 128
               }
             }
           }
