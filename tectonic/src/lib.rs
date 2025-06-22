@@ -311,6 +311,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         if keys_valid.is_empty() {
                             bail!("Cannot have updates when there are no valid keys.");
                         }
+                        keys_valid.sort(us.sort_by);
                         let key = keys_valid.get_random(rng_ref, &us.selection);
                         AsciiOperationFormatter::write_update(
                             writer,
@@ -327,6 +328,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         if keys_valid.is_empty() {
                             bail!("Cannot have merges when there are no valid keys.");
                         }
+                        keys_valid.sort(ms.sort_by);
                         let key = keys_valid.get_random(rng_ref, &ms.selection);
                         AsciiOperationFormatter::write_merge(
                             writer,
@@ -340,6 +342,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         let pds = group.point_deletes.as_ref().ok_or_else(|| {
                             anyhow!("Point delete marker can only appear when updates is not None")
                         })?;
+                        keys_valid.sort(pds.sort_by);
                         let key = keys_valid.remove_random(rng_ref, &pds.selection);
 
                         AsciiOperationFormatter::write_point_delete(writer, &key)?;
@@ -351,6 +354,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         let pqs = group.point_queries.as_ref().ok_or_else(|| {
                             anyhow!("Point query marker can only appear when updates is not None")
                         })?;
+                        keys_valid.sort(pqs.sort_by);
                         let key = keys_valid.get_random(rng_ref, &pqs.selection);
                         AsciiOperationFormatter::write_point_query(writer, key)?
                     }
@@ -394,7 +398,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             bail!("Cannot have range queries when there are no valid keys.");
                         }
 
-                        keys_valid.sort();
+                        keys_valid.sort(rqs.sort_by);
                         let (key1, key2) = keys_valid.get_range_random(
                             rqs.selectivity.evaluate(rng_ref),
                             rng_ref,
@@ -413,7 +417,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             bail!("Cannot have range deletes when there are no valid keys.");
                         }
 
-                        keys_valid.sort();
+                        keys_valid.sort(rds.sort_by);
                         let (key1, key2) = keys_valid.remove_range_random(
                             rds.selectivity.evaluate(rng_ref),
                             rng_ref,
