@@ -31,7 +31,7 @@ pub mod spec;
 // - query range
 
 use crate::keyset::{Key, KeySet, VecKeySet};
-use crate::spec::{CharacterSet, StringExpr, WorkloadSpec};
+use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
 impl AsciiOperationFormatter {
@@ -103,11 +103,29 @@ impl AsciiOperationFormatter {
 
         return Ok(());
     }
+    fn write_range_query_count(w: &mut impl Write, key1: &Key, count: usize) -> Result<()> {
+        w.write_all("S ".as_bytes())?;
+        w.write_all(key1)?;
+        w.write_all(" ".as_bytes())?;
+        w.write_all(count.to_string().as_bytes())?;
+        w.write_all("\n".as_bytes())?;
+
+        return Ok(());
+    }
     fn write_range_delete(w: &mut impl Write, key1: &Key, key2: &Key) -> Result<()> {
         w.write_all("R ".as_bytes())?;
         w.write_all(key1)?;
         w.write_all(" ".as_bytes())?;
         w.write_all(key2)?;
+        w.write_all("\n".as_bytes())?;
+
+        return Ok(());
+    }
+    fn write_range_delete_count(w: &mut impl Write, key1: &Key, count: usize) -> Result<()> {
+        w.write_all("R ".as_bytes())?;
+        w.write_all(key1)?;
+        w.write_all(" ".as_bytes())?;
+        w.write_all(count.to_string().as_bytes())?;
         w.write_all("\n".as_bytes())?;
 
         return Ok(());
@@ -402,14 +420,24 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             bail!("Cannot have range queries when there are no valid keys.");
                         }
 
-                        keys_valid.sort();
-                        let (key1, key2) = keys_valid.get_range_random(
-                            rqs.selectivity.evaluate(rng_ref),
-                            rng_ref,
-                            &rqs.selection,
-                        );
+                        let sel = rqs.selectivity.evaluate(rng_ref);
+                        match rqs.range_format {
+                            RangeFormat::StartCount => {
+                                let key = keys_valid.get_random(rng_ref, &rqs.selection);
 
-                        AsciiOperationFormatter::write_range_query(writer, key1, key2)?
+                                let count = (sel * keys_valid.len() as f64) as usize;
+                                AsciiOperationFormatter::write_range_query_count(
+                                    writer, key, count,
+                                )?
+                            }
+                            RangeFormat::StartEnd => {
+                                keys_valid.sort();
+                                let (key1, key2) =
+                                    keys_valid.get_range_random(sel, rng_ref, &rqs.selection);
+
+                                AsciiOperationFormatter::write_range_query(writer, key1, key2)?
+                            }
+                        }
                     }
                     Op::RangeDelete => {
                         let rds = group.range_deletes.as_ref().ok_or_else(|| {
@@ -421,13 +449,24 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             bail!("Cannot have range deletes when there are no valid keys.");
                         }
 
-                        keys_valid.sort();
-                        let (key1, key2) = keys_valid.remove_range_random(
-                            rds.selectivity.evaluate(rng_ref),
-                            rng_ref,
-                            &rds.selection,
-                        );
-                        AsciiOperationFormatter::write_range_delete(writer, &key1, &key2)?;
+                        let sel = rds.selectivity.evaluate(rng_ref);
+                        match rds.range_format {
+                            RangeFormat::StartCount => {
+                                let key = keys_valid.get_random(rng_ref, &rds.selection);
+
+                                let count = (sel * keys_valid.len() as f64) as usize;
+                                AsciiOperationFormatter::write_range_delete_count(
+                                    writer, key, count,
+                                )?
+                            }
+                            RangeFormat::StartEnd => {
+                                keys_valid.sort();
+                                let (key1, key2) =
+                                    keys_valid.get_range_random(sel, rng_ref, &rds.selection);
+
+                                AsciiOperationFormatter::write_range_delete(writer, key1, key2)?
+                            }
+                        }
                     }
                 }
             }

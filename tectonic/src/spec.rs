@@ -187,9 +187,9 @@ impl Distribution {
             Self::Exponential { lambda, .. } => 1.0 / lambda,
             Self::Beta { alpha, beta, .. } => alpha / (alpha + beta),
             Self::Zipf { s, n, .. } => {
-                let hs = gen_harmonic(*n as u64, *s as f64);
-                let hs_minus1 = gen_harmonic(*n as u64, (*s - 1.0) as f64);
-                return (hs_minus1 / hs) as f64;
+                let hs = gen_harmonic(*n as u64, *s);
+                let hs_minus1 = gen_harmonic(*n as u64, *s - 1.0);
+                return hs_minus1 / hs;
             }
             Self::LogNormal {
                 mean: mu,
@@ -199,12 +199,12 @@ impl Distribution {
 
             Self::Poisson { lambda, .. } => *lambda,
 
-            Self::Weibull { scale, shape, .. } => *scale * gamma(1.0 + 1.0 / *shape as f64) as f64,
+            Self::Weibull { scale, shape, .. } => *scale * gamma(1.0 + 1.0 / *shape),
             Self::Pareto { scale, shape, .. } => (shape * scale) / (shape - 1.0),
         };
     }
 
-    fn default_key_selection() -> Self {
+    pub fn default_key_selection() -> Self {
         let min = 0.;
         let max = 1.;
         return Self::Uniform {
@@ -374,6 +374,15 @@ impl TryFrom<StringExprInnerConfig> for StringExprInner {
     }
 }
 
+#[derive(serde::Deserialize, JsonSchema, Copy, Clone, Debug, Default)]
+pub enum RangeFormat {
+    /// The start key and the number of keys to scan
+    #[default]
+    StartCount,
+    /// The start key and end key
+    StartEnd,
+}
+
 impl StringExpr {
     pub fn generate(&self, rng: &mut impl Rng, character_set_parent: Option<CharacterSet>) -> Key {
         return match self {
@@ -508,7 +517,7 @@ impl StringExpr {
                         len,
                         ..
                     } => {
-                        let is_hot = rng.random_bool(*probability as f64);
+                        let is_hot = rng.random_bool(*probability);
                         let key = if is_hot {
                             let index = rng.random_range(0..hot_ranges.len());
                             hot_ranges[index].clone()
@@ -601,6 +610,9 @@ pub struct RangeDeletes {
     /// Key selection strategy of the start key
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
+    /// The format for the range
+    #[serde(default)]
+    pub range_format: RangeFormat,
     ///// Key sort order
     //pub sort_by: SortBy,
     #[serde(default)]
@@ -640,6 +652,9 @@ pub struct RangeQueries {
     /// Key selection strategy of the start key
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
+    /// The format for the range
+    #[serde(default)]
+    pub range_format: RangeFormat,
     ///// Key sort order
     //pub sort_by: SortBy,
     #[serde(default)]
