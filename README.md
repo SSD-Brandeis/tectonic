@@ -48,7 +48,6 @@ Options:
 ## TODO
 
 - speedups
-
   - [x] only sort / have data structures when they are necessary
   - [ ] only store keys + write to buffered writer immediately
   - [x] only sort keys on rqs when there is an rq
@@ -62,7 +61,6 @@ Options:
 - [ ] warnings about keyspace and how picking a small space could lead to lots of failed generation of empty point queries
 
 - [ ] create some sort of workload planner (similar to a query planner) that chooses the correct data structure to use based on the combinations of operations
-
   - e.g. for empty point queries: deletes ? hash_set : bloom_filter. To check inclusion
 
 - [ ] Merge operation

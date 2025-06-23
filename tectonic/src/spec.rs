@@ -428,7 +428,7 @@ impl StringExpr {
                         len,
                         ..
                     } => {
-                        let is_hot = rng.random_bool(*probability as f64);
+                        let is_hot = rng.random_bool(*probability);
                         return if is_hot {
                             let index = rng.random_range(0..hot_ranges.len());
                             hot_ranges[index].clone()
@@ -617,8 +617,6 @@ pub struct PointQueries {
     pub selection: Distribution,
     ///// Key sort order
     //pub sort_by: SortBy,
-    #[serde(default)]
-    pub character_set: Option<CharacterSet>,
 }
 
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
