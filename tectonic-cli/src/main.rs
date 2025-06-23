@@ -1,9 +1,12 @@
 #![allow(clippy::needless_return)]
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use tectonic::{generate_workload, generate_workload_spec_schema};
-use tracing::debug;
+use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 use walkdir::WalkDir;
 
@@ -22,13 +25,9 @@ enum Command {
         #[arg(short = 'w', long = "workload")]
         workload_path: String,
 
-        /// Output folder for workloads. Defaults to the same directory as the workload spec file.
+        /// Output file or folder for workload(s). Defaults to the same directory as the workload spec.
         #[arg(short = 'o', long = "output", required = false)]
         output: Option<String>,
-
-        /// Do not write any files, just log what would be done.
-        #[arg(long = "dry-run", required = false)]
-        dry_run: bool,
     },
     /// Prints the JSON schema for IDE integration.
     Schema,
@@ -44,12 +43,30 @@ fn main() -> Result<()> {
 
     match args.command {
         Command::Generate {
-            dry_run: _,
             workload_path,
             output,
         } => invoke_generate(&workload_path, output.as_deref()),
         Command::Schema => invoke_schema(),
     }
+}
+
+fn spec_path_to_workload_name(spec_path: impl AsRef<Path>) -> String {
+    fn spec_path_to_workload_name_inner(spec_path: &Path) -> String {
+        return spec_path
+            .file_name()
+            .and_then(|stem| stem.to_str())
+            .map(|stem| stem.rsplitn(3, '.').collect::<Vec<_>>()[2]) // file.spec.json -> file
+            .map(|stem| format!("{stem}.txt")) // file -> file.txt
+            .unwrap_or_else(|| {
+                let filename = spec_path.file_name().unwrap().to_string_lossy();
+                let basename = filename
+                    .rsplit_once('.')
+                    .map_or(filename.as_ref(), |(base, _)| base);
+                format!("{basename}.txt")
+            });
+    }
+
+    return spec_path_to_workload_name_inner(spec_path.as_ref());
 }
 
 /// Generate workload(s) from a file or folder of workload specifications.
@@ -59,72 +76,49 @@ fn invoke_generate(workload_path: &str, output: Option<&str>) -> Result<()> {
         bail!("File or folder does not exist {}", workload_path.display());
     }
 
-    let output_path = if let Some(output) = output {
-        // Directory that didn't exist.
-        let output_path = PathBuf::from(output);
-        if !output_path.exists() {
-            fs::create_dir_all(&output_path)?;
-        }
-        output_path
-    } else if workload_path.is_dir() {
-        // Same directory as workload spec dir.
-        workload_path.clone()
-    } else {
-        // Directory containing spec file.
-        workload_path.parent().unwrap().to_path_buf()
-    };
-
     if workload_path.is_dir() {
+        let output_dir = output
+            .map(PathBuf::from)
+            .unwrap_or_else(|| workload_path.clone());
+        if !output_dir.exists() {
+            fs::create_dir_all(&output_dir)?;
+        }
+
         for entry in WalkDir::new(&workload_path)
             .follow_links(true)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(Result::ok)
             .filter(|file| {
                 file.file_type().is_file()
                     && file
                         .path()
                         .file_name()
                         .and_then(|name| name.to_str())
-                        .map(|name| name.ends_with(".spec.json"))
+                        .map(
+                            |name| name.ends_with(".spec.json"), // || name.ends_with(".spec.jsonc")
+                        )
                         .unwrap_or(false)
             })
         {
             let path = entry.path();
-            println!("Generating workload for: {}", path.display());
+            info!("Generating workload for: {}", path.display());
             let contents = fs::read_to_string(path)?;
 
-            let output_file = path
-                .file_name()
-                .and_then(|stem| stem.to_str())
-                .map(|stem| stem.rsplitn(3, '.').collect::<Vec<_>>()[2]) // file.spec.json -> file
-                .map(|stem| format!("{stem}.txt")) // file -> file.txt
-                .unwrap_or_else(|| {
-                    let filename = path.file_name().unwrap().to_string_lossy();
-                    let basename = filename
-                        .rsplit_once('.')
-                        .map_or(filename.as_ref(), |(base, _)| base);
-                    format!("{basename}.txt")
-                });
+            let output_file = spec_path_to_workload_name(path);
 
-            let mut output_file_path = output_path.clone();
+            let mut output_file_path = output_dir.clone();
             output_file_path.push(output_file);
 
-            generate_workload(&contents, output_file_path)?;
+            generate_workload(&contents, &output_file_path)?;
         }
     } else if workload_path.is_file() {
+        let output_file = output
+            .map(PathBuf::from)
+            .unwrap_or_else(|| spec_path_to_workload_name(&workload_path).into());
+
         let contents = fs::read_to_string(&workload_path)?;
 
-        let output_file = workload_path
-            .file_name()
-            .and_then(|stem| stem.to_str())
-            .map(|stem| stem.rsplitn(3, '.').collect::<Vec<_>>()[2]) // file.spec.json -> file
-            .map(|stem| format!("{stem}.txt"))
-            .unwrap_or_else(|| format!("{}.txt", workload_path.display()));
-
-        let mut output_file_path = output_path.clone();
-        output_file_path.push(output_file);
-
-        generate_workload(&contents, output_file_path)?;
+        generate_workload(&contents, &output_file)?;
     } else {
         unreachable!("Path is neither a file nor a directory");
     };

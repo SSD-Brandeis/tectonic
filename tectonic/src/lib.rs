@@ -434,7 +434,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
 }
 
 /// Takes in a JSON representation of a workload specification and writes the workload to a file.
-pub fn generate_workload(workload_spec_string: &str, output_file: PathBuf) -> Result<()> {
+pub fn generate_workload(workload_spec_string: &str, output_file: &PathBuf) -> Result<()> {
     let workload_spec: WorkloadSpec =
         serde_json::from_str(workload_spec_string).context("Parsing spec file")?;
     let mut buf_writer = BufWriter::with_capacity(1024 * 1024, File::create(output_file)?);
