@@ -5,7 +5,7 @@
       "groups": [
         {
           "inserts": {
-            "amount": 10000,
+            "amount": 1000000,
             "key": {
               "segmented": {
                 "segments": [
@@ -22,7 +22,7 @@
         },
         {
           "point_queries": {
-            "amount": 495000,
+            "amount": 500000,
             "selection": {
               "beta": {
                 "alpha": 0.1,
@@ -31,7 +31,7 @@
             }
           },
           "updates": {
-            "amount": 495000,
+            "amount": 500000,
             "val": {
               "uniform": { "len": 128 }
             },

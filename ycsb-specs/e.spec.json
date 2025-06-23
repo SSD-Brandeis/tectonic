@@ -5,10 +5,13 @@
       "groups": [
         {
           "inserts": {
-            "amount": 5000000,
+            "amount": 1000000,
             "key": {
               "segmented": {
-                "segments": ["user", { "uniform": { "len": 4 } }],
+                "segments": [
+                  "usertable:user",
+                  { "uniform": { "len": 19, "character_set": "numeric" } }
+                ],
                 "separator": ""
               }
             },
@@ -19,7 +22,7 @@
         },
         {
           "range_queries": {
-            "amount": 95000000,
+            "amount": 950000,
             "selectivity": {
               "uniform": {
                 "min": 0,
@@ -34,10 +37,13 @@
             }
           },
           "inserts": {
-            "amount": 0,
+            "amount": 50000,
             "key": {
               "segmented": {
-                "segments": ["user", { "uniform": { "len": 4 } }],
+                "segments": [
+                  "usertable:user",
+                  { "uniform": { "len": 19, "character_set": "numeric" } }
+                ],
                 "separator": ""
               }
             },
