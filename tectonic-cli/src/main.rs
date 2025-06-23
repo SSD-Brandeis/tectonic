@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tectonic::{generate_workload, generate_workload_spec_schema};
-use tracing::{debug, info};
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 use walkdir::WalkDir;
 

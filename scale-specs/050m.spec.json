@@ -1,0 +1,52 @@
+{
+  "$schema": "../workload_schema.json",
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 50000000,
+            "key": {
+              "uniform": {
+                "len": 32,
+                "character_set": "numeric"
+              }
+            },
+            "val": {
+              "uniform": {
+                "len": 992
+              }
+            }
+          }
+        },
+        {
+          "inserts": {
+            "amount": 40000000,
+            "key": {
+              "uniform": {
+                "len": 32,
+                "character_set": "numeric"
+              }
+            },
+            "val": {
+              "uniform": {
+                "len": 992
+              }
+            }
+          },
+          "updates": {
+            "amount": 5000000,
+            "val": {
+              "uniform": {
+                "len": 992
+              }
+            }
+          },
+          "point_queries": {
+            "amount": 5000000
+          }
+        }
+      ]
+    }
+  ]
+}
