@@ -39,7 +39,6 @@ fn main() -> Result<()> {
         // .with_env_filter(EnvFilter::new("debug"))
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-    debug!("hi");
 
     match args.command {
         Command::Generate {

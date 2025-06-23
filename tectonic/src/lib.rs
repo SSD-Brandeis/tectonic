@@ -282,7 +282,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             markers.extend(repeat_n(Op::RangeQuery, query_range_count));
             markers.shuffle(rng_ref);
 
-            for marker in markers {
+            for (i, marker) in markers.iter().enumerate() {
+                if i % 10000 == 0 {
+                    debug!("Generating operation {i}");
+                }
+
                 match marker {
                     Op::Insert => {
                         let is = group.inserts.as_ref().ok_or_else(|| {

@@ -1,0 +1,75 @@
+{
+  "$schema": "../workload_schema.json",
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 1000000,
+            "key": {
+              "segmented": {
+                "separator": "",
+                "segments": [
+                  "user",
+                  { "uniform": { "len": 20, "character_set": "numeric" } },
+                  "object",
+                  { "uniform": { "len": 20, "character_set": "numeric" } }
+                ]
+              }
+            },
+            "val": {
+              "uniform": { "len": 1024 }
+            }
+          }
+        },
+        {
+          "point_queries": {
+            "amount": 500000,
+            "selection": {
+              "beta": {
+                "alpha": 1,
+                "beta": 5
+              }
+            }
+          },
+          "empty_point_queries": {
+            "amount": 50000,
+            "key": {
+              "segmented": {
+                "separator": "",
+                "segments": [
+                  "user",
+                  { "uniform": { "len": 20, "character_set": "numeric" } },
+                  "object",
+                  { "uniform": { "len": 20, "character_set": "numeric" } }
+                ]
+              }
+            },
+            "selection": {
+              "beta": {
+                "alpha": 1,
+                "beta": 5
+              }
+            }
+          },
+          "range_queries": {
+            "amount": 5000,
+            "selectivity": { "normal": { "mean": 0.01, "std_dev": 0.005 } }
+          },
+          "updates": {
+            "amount": 500000,
+            "val": {
+              "uniform": { "len": 128 }
+            },
+            "selection": {
+              "beta": {
+                "alpha": 2,
+                "beta": 3
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
