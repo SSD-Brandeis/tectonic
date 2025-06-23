@@ -1,6 +1,7 @@
 # Using `tectonic`
 
-> [!NOTE] `tectonic` spec files have a schema, which can help when writing them.
+> [!NOTE]
+> `tectonic` spec files have a schema, which can help when writing them.
 > Output it with `tectonic schema > workload_schema.json`. In each of your spec
 > files, use the `$schema` key in your top level object
 > (`{"$schema": "./workload_schema.json"}`) and you will get autocomplete and
@@ -63,7 +64,8 @@ With these questions answered, you can plan the broad structure of the workload.
 - operations that **DO** share valid keys and **ARE** interleaved go in the same
   _group_.
 
-> [!NOTE] JSON files will use the JSONC standard so that comments can be added.
+> [!NOTE]
+> JSON files will use the JSONC standard so that comments can be added.
 > JSONC support for `tectonic` is planned, but not valid syntax right now.
 
 ```jsonc
