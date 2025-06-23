@@ -27,15 +27,15 @@ impl rand::distr::Distribution<u8> for Numeric {
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 enum DistributionConfig {
-    Uniform { min: f32, max: f32 },
-    Normal { mean: f32, std_dev: f32 },
-    Beta { alpha: f32, beta: f32 },
-    Zipf { n: usize, s: f32 },
-    Exponential { lambda: f32 },
-    LogNormal { mean: f32, std_dev: f32 },
-    Poisson { lambda: f32 },
-    Weibull { scale: f32, shape: f32 },
-    Pareto { scale: f32, shape: f32 },
+    Uniform { min: f64, max: f64 },
+    Normal { mean: f64, std_dev: f64 },
+    Beta { alpha: f64, beta: f64 },
+    Zipf { n: usize, s: f64 },
+    Exponential { lambda: f64 },
+    LogNormal { mean: f64, std_dev: f64 },
+    Poisson { lambda: f64 },
+    Weibull { scale: f64, shape: f64 },
+    Pareto { scale: f64, shape: f64 },
 }
 
 #[derive(serde::Deserialize, Clone, Debug)]
@@ -44,51 +44,51 @@ enum DistributionConfig {
 pub enum Distribution {
     /// Uniform distribution over the range [min, max).
     Uniform {
-        min: f32,
-        max: f32,
-        distr: rand_distr::Uniform<f32>,
+        min: f64,
+        max: f64,
+        distr: rand_distr::Uniform<f64>,
     },
     /// Normal distribution with the given mean and standard deviation.
     Normal {
-        mean: f32,
-        std_dev: f32,
-        distr: rand_distr::Normal<f32>,
+        mean: f64,
+        std_dev: f64,
+        distr: rand_distr::Normal<f64>,
     },
     /// Exponential distribution with the given lambda parameter.
     Exponential {
-        lambda: f32,
-        distr: rand_distr::Exp<f32>,
+        lambda: f64,
+        distr: rand_distr::Exp<f64>,
     },
     /// Beta distribution with the given alpha and beta parameters.
     Beta {
-        alpha: f32,
-        beta: f32,
-        distr: rand_distr::Beta<f32>,
+        alpha: f64,
+        beta: f64,
+        distr: rand_distr::Beta<f64>,
     },
     /// Zipf distribution with the given n and s parameters.
     Zipf {
         n: usize,
-        s: f32,
-        distr: rand_distr::Zipf<f32>,
+        s: f64,
+        distr: rand_distr::Zipf<f64>,
     },
     LogNormal {
-        mean: f32,
-        std_dev: f32,
-        distr: rand_distr::LogNormal<f32>,
+        mean: f64,
+        std_dev: f64,
+        distr: rand_distr::LogNormal<f64>,
     },
     Poisson {
-        lambda: f32,
-        distr: rand_distr::Poisson<f32>,
+        lambda: f64,
+        distr: rand_distr::Poisson<f64>,
     },
     Weibull {
-        scale: f32,
-        shape: f32,
-        distr: rand_distr::Weibull<f32>,
+        scale: f64,
+        shape: f64,
+        distr: rand_distr::Weibull<f64>,
     },
     Pareto {
-        scale: f32,
-        shape: f32,
-        distr: rand_distr::Pareto<f32>,
+        scale: f64,
+        shape: f64,
+        distr: rand_distr::Pareto<f64>,
     },
 }
 
@@ -120,7 +120,7 @@ impl TryFrom<DistributionConfig> for Distribution {
             DC::Zipf { n, s } => Self::Zipf {
                 n,
                 s,
-                distr: rand_distr::Zipf::new(n as f32, s)?,
+                distr: rand_distr::Zipf::new(n as f64, s)?,
             },
             DC::LogNormal {
                 mean: mu,
@@ -166,7 +166,7 @@ impl JsonSchema for Distribution {
 }
 
 impl Distribution {
-    pub fn evaluate(&self, rng: &mut impl Rng) -> f32 {
+    pub fn evaluate(&self, rng: &mut impl Rng) -> f64 {
         return match self {
             Self::Uniform { distr, .. } => distr.sample(rng),
             Self::Normal { distr, .. } => distr.sample(rng),
@@ -180,7 +180,7 @@ impl Distribution {
         };
     }
 
-    pub fn expected_value(&self) -> f32 {
+    pub fn expected_value(&self) -> f64 {
         return match self {
             Self::Uniform { min, max, .. } => min + max / 2.0,
             Self::Normal { mean, .. } => *mean,
@@ -189,7 +189,7 @@ impl Distribution {
             Self::Zipf { s, n, .. } => {
                 let hs = gen_harmonic(*n as u64, *s as f64);
                 let hs_minus1 = gen_harmonic(*n as u64, (*s - 1.0) as f64);
-                return (hs_minus1 / hs) as f32;
+                return (hs_minus1 / hs) as f64;
             }
             Self::LogNormal {
                 mean: mu,
@@ -199,7 +199,7 @@ impl Distribution {
 
             Self::Poisson { lambda, .. } => *lambda,
 
-            Self::Weibull { scale, shape, .. } => *scale * gamma(1.0 + 1.0 / *shape as f64) as f32,
+            Self::Weibull { scale, shape, .. } => *scale * gamma(1.0 + 1.0 / *shape as f64) as f64,
             Self::Pareto { scale, shape, .. } => (shape * scale) / (shape - 1.0),
         };
     }
@@ -220,13 +220,13 @@ impl Distribution {
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 #[serde(untagged)]
 pub enum NumberExpr {
-    Constant(f32),
+    Constant(f64),
     Sampled(Distribution),
 }
 
 impl NumberExpr {
     /// Evaluates the expression to a value.
-    pub fn evaluate(&self, rng: &mut impl Rng) -> f32 {
+    pub fn evaluate(&self, rng: &mut impl Rng) -> f64 {
         match self {
             Self::Constant(val) => *val,
             Self::Sampled(dist) => dist.evaluate(rng),
@@ -234,7 +234,7 @@ impl NumberExpr {
     }
 
     /// Expected value of the expression.
-    pub fn expected_value(&self) -> f32 {
+    pub fn expected_value(&self) -> f64 {
         match self {
             Self::Constant(val) => *val,
             Self::Sampled(dist) => dist.expected_value(),
@@ -253,7 +253,7 @@ pub enum KeyDistribution {
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 pub struct Weight {
     /// The weight of the item.
-    pub weight: f32,
+    pub weight: f64,
     /// The value of the item.
     pub value: StringExpr,
 }
@@ -277,7 +277,7 @@ pub enum StringExprInnerConfig {
     HotRange {
         len: usize,
         amount: usize,
-        probability: f32,
+        probability: f64,
     },
 }
 
@@ -295,7 +295,7 @@ pub enum StringExprInner {
     },
     Weighted {
         items: Vec<Weight>,
-        distr: WeightedIndex<f32>,
+        distr: WeightedIndex<f64>,
     },
     Segmented {
         separator: String,
@@ -305,7 +305,7 @@ pub enum StringExprInner {
     HotRange {
         len: usize,
         amount: usize,
-        probability: f32,
+        probability: f64,
         hot_ranges: Vec<Key>,
     },
 }

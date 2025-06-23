@@ -7,7 +7,6 @@ use crate::spec::Distribution;
 use bloom::{ASMS, BloomFilter};
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
-use std::f32;
 use std::ops::{Bound, Range};
 
 pub type Key = Box<[u8]>;
@@ -24,24 +23,24 @@ pub trait KeySet {
     fn remove(&mut self, idx: usize) -> Key;
 
     fn remove_random(&mut self, rng: &mut impl Rng, distribution: &Distribution) -> Key {
-        let x = distribution.evaluate(rng).clamp(0., 1. - f32::EPSILON);
-        let idx = (x * self.len() as f32) as usize;
+        let x = distribution.evaluate(rng).clamp(0., 1. - f64::EPSILON);
+        let idx = (x * self.len() as f64) as usize;
         return self.remove(idx);
     }
 
     fn remove_range(&mut self, idx_range: Range<usize>) -> (Key, Key);
     fn remove_range_random(
         &mut self,
-        selectivity: f32,
+        selectivity: f64,
         rng: &mut impl Rng,
         distribution: &Distribution,
     ) -> (Key, Key) {
         let num_keys = self.len();
-        let range_len = (selectivity * (num_keys as f32)).floor() as usize;
+        let range_len = (selectivity * (num_keys as f64)).floor() as usize;
         let valid_len = num_keys - range_len;
 
-        let x = distribution.evaluate(rng).clamp(0., 1. - f32::EPSILON);
-        let start_idx = (x * valid_len as f32) as usize;
+        let x = distribution.evaluate(rng).clamp(0., 1. - f64::EPSILON);
+        let start_idx = (x * valid_len as f64) as usize;
         let end_idx = start_idx + range_len;
 
         return self.remove_range(start_idx..end_idx);
@@ -50,23 +49,23 @@ pub trait KeySet {
     fn get(&self, idx: usize) -> &Key;
 
     fn get_random(&self, rng: &mut impl Rng, distribution: &Distribution) -> &Key {
-        let x = distribution.evaluate(rng).clamp(0., 1. - f32::EPSILON);
-        let idx = (x * self.len() as f32) as usize;
+        let x = distribution.evaluate(rng).clamp(0., 1. - f64::EPSILON);
+        let idx = (x * self.len() as f64) as usize;
         return self.get(idx);
     }
 
     fn get_range_random(
         &mut self,
-        selectivity: f32,
+        selectivity: f64,
         rng: &mut impl Rng,
         distribution: &Distribution,
     ) -> (&Key, &Key) {
         let num_keys = self.len();
-        let range_len = (selectivity * (num_keys as f32)).floor() as usize;
+        let range_len = (selectivity * (num_keys as f64)).floor() as usize;
         let valid_len = num_keys - range_len;
 
-        let x = distribution.evaluate(rng).clamp(0., 1. - f32::EPSILON);
-        let start_idx = (x * valid_len as f32) as usize;
+        let x = distribution.evaluate(rng).clamp(0., 1. - f64::EPSILON);
+        let start_idx = (x * valid_len as f64) as usize;
         let end_idx = start_idx + range_len;
 
         let key1 = self.get(start_idx);

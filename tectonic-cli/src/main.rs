@@ -115,7 +115,7 @@ fn invoke_generate(workload_path: &str, output: Option<&str>) -> Result<()> {
         let contents = fs::read_to_string(&workload_path)?;
 
         let output_file = workload_path
-            .file_stem()
+            .file_name()
             .and_then(|stem| stem.to_str())
             .map(|stem| stem.rsplitn(3, '.').collect::<Vec<_>>()[2]) // file.spec.json -> file
             .map(|stem| format!("{stem}.txt"))
