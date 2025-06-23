@@ -5,10 +5,10 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1000,
+            "amount": 1000000,
             "key": {
               "segmented": {
-                "segments": ["user", { "uniform": { "len": 4 } }],
+                "segments": ["usertable:user", { "uniform": { "len": 19 } }],
                 "separator": ""
               }
             },
@@ -19,7 +19,7 @@
         },
         {
           "point_queries": {
-            "amount": 1000,
+            "amount": 1000000,
             "selection": {
               "beta": {
                 "alpha": 0.1,

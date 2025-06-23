@@ -1,6 +1,5 @@
-
 WORKLOAD_GEN="./target/release/tectonic-cli"
-SPECS_DIR="ycsb-specs"
+SPECS_DIR="specs"
 OUTPUT_DIR="output"
 LOG_DIR="logs"
 
@@ -8,12 +7,9 @@ mkdir -p "$OUTPUT_DIR"
 mkdir -p "$LOG_DIR"
 
 WORKLOADS=(
-  "a"
-  "b"
-  "c"
-  "d"
-  "e"
-  "f"
+  "insert_test_run"
+
+
 )
 
 for workload in "${WORKLOADS[@]}"; do
@@ -22,11 +18,12 @@ for workload in "${WORKLOADS[@]}"; do
   log_path="$LOG_DIR/${workload}_profile.log"
 
   echo ">>> Running $workload"
+  echo "Output folder: $out_path"
   echo "Logging to: $log_path"
 
   mkdir -p "$out_path"
 
-  /usr/bin/time -v "$WORKLOAD_GEN" generate -w "$spec_path" \
+  /usr/bin/time -v "$WORKLOAD_GEN" generate -w "$spec_path" -o "$out_path" \
     > >(tee "$log_path") \
     2> >(tee -a "$log_path" >&2)
 
@@ -34,10 +31,7 @@ for workload in "${WORKLOADS[@]}"; do
     echo "Got an error: workload $workload failed, cannot do it." | tee -a "$log_path"
   else
     echo ">>> Finished $workload"
-    echo ">>> remove generated workload files "
-   
-    rm -rf "$out_path"
   fi
 
   echo
-done
+done  
