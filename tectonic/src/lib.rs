@@ -164,9 +164,20 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
     // let mut keys_prev_sections = BloomFilter::with_rate(0.01, todo!());
 
     for section in &workload.sections {
-        let mut keys_valid = keyset_constructor(0 /*section.insert_count()*/);
+        let insert_counts: Vec<usize> = section
+            .groups
+            .iter()
+            .map(|g| {
+                g.inserts
+                    .as_ref()
+                    .map_or(0, |is| is.amount.evaluate(&mut rng) as usize)
+            })
+            .collect();
 
-        for group in &section.groups {
+        let mut keys_valid =
+            keyset_constructor(insert_counts.iter().sum() /*section.insert_count()*/);
+
+        for (group, insert_count) in std::iter::zip(&section.groups, insert_counts) {
             let rng_ref = &mut rng;
             let mut markers: Vec<Op> = Vec::with_capacity(0 /*group.operation_count()*/);
             let character_set = group
@@ -174,10 +185,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                 .or(section.character_set)
                 .or(workload.character_set);
 
-            let insert_count = group
-                .inserts
-                .as_ref()
-                .map_or(0, |is| is.amount.evaluate(rng_ref) as usize);
+            // let insert_count = group
+            //     .inserts
+            //     .as_ref()
+            //     .map_or(0, |is| is.amount.evaluate(rng_ref) as usize);
             let update_count = group
                 .updates
                 .as_ref()
@@ -400,17 +411,12 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             anyhow!("Empty point query marker can only appear when empty_point_queries is not None")
                         })?;
                         let char_set = epq.character_set.or(character_set);
-                        let mut i = 0;
                         let key = loop {
                             let k = epq.key.generate(rng_ref, char_set);
-                            i += 1;
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
                         };
-                        if i > 1 {
-                            debug!("epq {i}");
-                        }
 
                         AsciiOperationFormatter::write_point_query(writer, &key)?
                     }
