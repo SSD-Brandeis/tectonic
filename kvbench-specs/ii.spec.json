@@ -5,7 +5,14 @@
       "groups": [
         {
           "inserts": {
-            "amount": 500000,
+            "amount": 100000,
+            "key": { "uniform": { "len": 32 } },
+            "val": { "uniform": { "len": 32 } }
+          }
+        },
+        {
+          "inserts": {
+            "amount": 400000,
             "key": { "uniform": { "len": 32 } },
             "val": { "uniform": { "len": 32 } }
           },
