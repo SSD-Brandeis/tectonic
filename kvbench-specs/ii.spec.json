@@ -1,0 +1,27 @@
+{
+  "$schema": "../workload_schema.json",
+  "sections": [
+    {
+      "groups": [
+        {
+          "inserts": {
+            "amount": 500000,
+            "key": { "uniform": { "len": 32 } },
+            "val": { "uniform": { "len": 32 } }
+          },
+          "point_deletes": {
+            "amount": 100000
+          },
+          "empty_point_queries": {
+            "amount": 150000,
+            "key": { "uniform": { "len": 32 } }
+          },
+          "updates": {
+            "amount": 250000,
+            "val": { "uniform": { "len": 32 } }
+          }
+        }
+      ]
+    }
+  ]
+}

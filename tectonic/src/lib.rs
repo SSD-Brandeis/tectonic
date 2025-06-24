@@ -30,7 +30,7 @@ pub mod spec;
 // - query point empty
 // - query range
 
-use crate::keyset::{Key, KeySet, VecBloomFilterKeySet, VecKeySet};
+use crate::keyset::{Key, KeySet, VecBloomFilterKeySet};
 use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;

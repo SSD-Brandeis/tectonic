@@ -22,11 +22,17 @@
       }
     }
   },
-  "required": ["sections"],
+  "required": [
+    "sections"
+  ],
   "$defs": {
     "CharacterSet": {
       "type": "string",
-      "enum": ["alphanumeric", "alphabetic", "numeric"]
+      "enum": [
+        "alphanumeric",
+        "alphabetic",
+        "numeric"
+      ]
     },
     "Distribution": {
       "oneOf": [
@@ -38,18 +44,23 @@
               "properties": {
                 "max": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 },
                 "min": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["min", "max"]
+              "required": [
+                "min",
+                "max"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["uniform"]
+          "required": [
+            "uniform"
+          ]
         },
         {
           "type": "object",
@@ -59,18 +70,23 @@
               "properties": {
                 "mean": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 },
                 "std_dev": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["mean", "std_dev"]
+              "required": [
+                "mean",
+                "std_dev"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["normal"]
+          "required": [
+            "normal"
+          ]
         },
         {
           "type": "object",
@@ -80,18 +96,23 @@
               "properties": {
                 "alpha": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 },
                 "beta": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["alpha", "beta"]
+              "required": [
+                "alpha",
+                "beta"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["beta"]
+          "required": [
+            "beta"
+          ]
         },
         {
           "type": "object",
@@ -106,14 +127,19 @@
                 },
                 "s": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["n", "s"]
+              "required": [
+                "n",
+                "s"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["zipf"]
+          "required": [
+            "zipf"
+          ]
         },
         {
           "type": "object",
@@ -123,14 +149,18 @@
               "properties": {
                 "lambda": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["lambda"]
+              "required": [
+                "lambda"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["exponential"]
+          "required": [
+            "exponential"
+          ]
         },
         {
           "type": "object",
@@ -140,18 +170,23 @@
               "properties": {
                 "mean": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 },
                 "std_dev": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["mean", "std_dev"]
+              "required": [
+                "mean",
+                "std_dev"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["log_normal"]
+          "required": [
+            "log_normal"
+          ]
         },
         {
           "type": "object",
@@ -161,14 +196,18 @@
               "properties": {
                 "lambda": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["lambda"]
+              "required": [
+                "lambda"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["poisson"]
+          "required": [
+            "poisson"
+          ]
         },
         {
           "type": "object",
@@ -178,18 +217,23 @@
               "properties": {
                 "scale": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 },
                 "shape": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["scale", "shape"]
+              "required": [
+                "scale",
+                "shape"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["weibull"]
+          "required": [
+            "weibull"
+          ]
         },
         {
           "type": "object",
@@ -199,18 +243,23 @@
               "properties": {
                 "scale": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 },
                 "shape": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["scale", "shape"]
+              "required": [
+                "scale",
+                "shape"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["pareto"]
+          "required": [
+            "pareto"
+          ]
         }
       ]
     },
@@ -237,7 +286,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "key"]
+      "required": [
+        "amount",
+        "key"
+      ]
     },
     "EmptyPointQueries": {
       "description": "Empty point queries specification.",
@@ -262,7 +314,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "key"]
+      "required": [
+        "amount",
+        "key"
+      ]
     },
     "Inserts": {
       "description": "Inserts specification.",
@@ -291,7 +346,11 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "key", "val"]
+      "required": [
+        "amount",
+        "key",
+        "val"
+      ]
     },
     "Merges": {
       "description": "Merges (read-modify-write) specification.",
@@ -320,13 +379,16 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "val"]
+      "required": [
+        "amount",
+        "val"
+      ]
     },
     "NumberExpr": {
       "anyOf": [
         {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         {
           "$ref": "#/$defs/Distribution"
@@ -346,7 +408,9 @@
           "$ref": "#/$defs/Distribution"
         }
       },
-      "required": ["amount"]
+      "required": [
+        "amount"
+      ]
     },
     "PointQueries": {
       "description": "Non-empty point queries specification.",
@@ -356,22 +420,14 @@
           "description": "Number of point queries",
           "$ref": "#/$defs/NumberExpr"
         },
-        "character_set": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/CharacterSet"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "selection": {
           "description": "Key selection strategy of the start key",
           "$ref": "#/$defs/Distribution"
         }
       },
-      "required": ["amount"]
+      "required": [
+        "amount"
+      ]
     },
     "RangeDeletes": {
       "description": "Range deletes specification.",
@@ -391,6 +447,10 @@
             }
           ]
         },
+        "range_format": {
+          "description": "The format for the range",
+          "$ref": "#/$defs/RangeFormat"
+        },
         "selection": {
           "description": "Key selection strategy of the start key",
           "$ref": "#/$defs/Distribution"
@@ -400,7 +460,24 @@
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": ["amount", "selectivity"]
+      "required": [
+        "amount",
+        "selectivity"
+      ]
+    },
+    "RangeFormat": {
+      "oneOf": [
+        {
+          "description": "The start key and the number of keys to scan",
+          "type": "string",
+          "const": "StartCount"
+        },
+        {
+          "description": "The start key and end key",
+          "type": "string",
+          "const": "StartEnd"
+        }
+      ]
     },
     "RangeQueries": {
       "description": "Range queries specification.",
@@ -420,6 +497,10 @@
             }
           ]
         },
+        "range_format": {
+          "description": "The format for the range",
+          "$ref": "#/$defs/RangeFormat"
+        },
         "selection": {
           "description": "Key selection strategy of the start key",
           "$ref": "#/$defs/Distribution"
@@ -429,7 +510,10 @@
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": ["amount", "selectivity"]
+      "required": [
+        "amount",
+        "selectivity"
+      ]
     },
     "Sorted": {
       "type": "object",
@@ -443,7 +527,10 @@
           "$ref": "#/$defs/NumberExpr"
         }
       },
-      "required": ["k", "l"]
+      "required": [
+        "k",
+        "l"
+      ]
     },
     "StringExpr": {
       "anyOf": [
@@ -479,11 +566,15 @@
                   "$ref": "#/$defs/NumberExpr"
                 }
               },
-              "required": ["len"]
+              "required": [
+                "len"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["uniform"]
+          "required": [
+            "uniform"
+          ]
         },
         {
           "type": "object",
@@ -496,7 +587,9 @@
             }
           },
           "additionalProperties": false,
-          "required": ["weighted"]
+          "required": [
+            "weighted"
+          ]
         },
         {
           "type": "object",
@@ -515,11 +608,16 @@
                   "type": "string"
                 }
               },
-              "required": ["separator", "segments"]
+              "required": [
+                "separator",
+                "segments"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["segmented"]
+          "required": [
+            "segmented"
+          ]
         },
         {
           "type": "object",
@@ -539,14 +637,20 @@
                 },
                 "probability": {
                   "type": "number",
-                  "format": "float"
+                  "format": "double"
                 }
               },
-              "required": ["len", "amount", "probability"]
+              "required": [
+                "len",
+                "amount",
+                "probability"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["hot_range"]
+          "required": [
+            "hot_range"
+          ]
         }
       ]
     },
@@ -577,7 +681,10 @@
           "$ref": "#/$defs/StringExpr"
         }
       },
-      "required": ["amount", "val"]
+      "required": [
+        "amount",
+        "val"
+      ]
     },
     "Weight": {
       "type": "object",
@@ -589,10 +696,13 @@
         "weight": {
           "description": "The weight of the item.",
           "type": "number",
-          "format": "float"
+          "format": "double"
         }
       },
-      "required": ["weight", "value"]
+      "required": [
+        "weight",
+        "value"
+      ]
     },
     "WorkloadSpecGroup": {
       "type": "object",
@@ -736,7 +846,9 @@
           "default": false
         }
       },
-      "required": ["groups"]
+      "required": [
+        "groups"
+      ]
     }
   }
 }
