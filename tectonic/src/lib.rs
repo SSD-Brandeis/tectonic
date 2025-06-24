@@ -30,7 +30,7 @@ pub mod spec;
 // - query point empty
 // - query range
 
-use crate::keyset::{Key, KeySet, VecKeySet};
+use crate::keyset::{Key, KeySet, VecBloomFilterKeySet, VecKeySet};
 use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
@@ -152,7 +152,7 @@ fn gen_string(rng: &mut Xoshiro256Plus, len: usize) -> Key {
 
 /// Generates a workload given the spec and writes it to the given writer.
 pub fn write_operations(writer: &mut impl Write, workload: &WorkloadSpec) -> Result<()> {
-    write_operations_with_keyset(writer, workload, VecKeySet::new)
+    write_operations_with_keyset(writer, workload, VecBloomFilterKeySet::new)
 }
 
 pub fn write_operations_with_keyset<KeySetT: KeySet>(
@@ -399,14 +399,18 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         let epq = group.empty_point_queries.as_ref().ok_or_else(|| {
                             anyhow!("Empty point query marker can only appear when empty_point_queries is not None")
                         })?;
+                        let char_set = epq.character_set.or(character_set);
+                        let mut i = 0;
                         let key = loop {
-                            let k = epq
-                                .key
-                                .generate(rng_ref, epq.character_set.or(character_set));
+                            let k = epq.key.generate(rng_ref, char_set);
+                            i += 1;
                             if !keys_valid.contains(&k) {
                                 break k;
                             }
                         };
+                        if i > 1 {
+                            debug!("epq {i}");
+                        }
 
                         AsciiOperationFormatter::write_point_query(writer, &key)?
                     }
