@@ -30,7 +30,7 @@ pub mod spec;
 // - query point empty
 // - query range
 
-use crate::keyset::{Key, KeySet, VecBloomFilterKeySet, VecHashMapIndexKeySet};
+use crate::keyset::{Key, KeySet, VecBloomFilterKeySet, VecHashMapIndexKeySet, VecOptionKeySet};
 use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
@@ -148,7 +148,7 @@ enum Op {
 /// Generates a workload given the spec and writes it to the given writer.
 pub fn write_operations(writer: &mut impl Write, workload: &WorkloadSpec) -> Result<()> {
     // write_operations_with_keyset(writer, workload, VecBloomFilterKeySet::new)
-    write_operations_with_keyset(writer, workload, VecHashMapIndexKeySet::new)
+    write_operations_with_keyset(writer, workload, VecOptionKeySet::new)
 }
 
 pub fn write_operations_with_keyset<KeySetT: KeySet>(
@@ -313,8 +313,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             markers.shuffle(rng_ref);
 
             for (i, marker) in markers.iter().enumerate() {
-                if i.is_multiple_of(10000) {
-                    debug!("Generating operation {i}");
+                if i.is_multiple_of(markers.len() / 10) {
+                    debug!(
+                        "Generating operation {i} ({}%)",
+                        (i as f64 * 100.0 / markers.len() as f64).round()
+                    );
                 }
 
                 match marker {
