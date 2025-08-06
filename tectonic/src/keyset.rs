@@ -150,7 +150,7 @@ pub struct VecOptionKeySet {
 }
 
 /// The threshold for the percentage of None values to trigger a filter operation.
-const VEC_OPTION_KEY_SET_FILTER_THRESHOLD: f64 = 0.05;
+const VEC_OPTION_KEY_SET_FILTER_THRESHOLD: f64 = 0.01;
 
 // FIXME: this needs to implemented with "generation indexing" / "slotmap"
 impl VecOptionKeySet {
@@ -219,7 +219,7 @@ impl KeySet for VecOptionKeySet {
 
     fn remove_range(&mut self, idx_range: Range<usize>) -> (Key, Key) {
         // FIXME: This is technically incorrect, because the range could contain `None` values.
-        // Never more than 10% (VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 %) of the keys tho, so
+        // Never more than VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 % of the keys tho, so
         // it might be ok.
         let mut drain = self.keys.drain(idx_range.clone()).flatten();
         let key1 = drain.next().expect("to have at least one element");
