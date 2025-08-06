@@ -20,7 +20,8 @@
           },
           "range_deletes": {
             "amount": 500000,
-            "selectivity": 0.0000001 
+            "selectivity": 0.0000001,
+            "range_format": "StartEnd"
           }
         }
       ]
