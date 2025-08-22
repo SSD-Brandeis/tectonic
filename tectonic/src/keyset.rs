@@ -11,6 +11,45 @@ use std::ops::{Bound, Range};
 
 pub type Key = Box<[u8]>;
 
+// Modified from https://github.com/servo/rust-fnv/blob/main/lib.rs#L146-L157 (MIT)
+const INITIAL_STATE: u64 = 0xcbf2_9ce4_8422_2325;
+const PRIME: u64 = 0x0100_0000_01b3;
+#[inline]
+#[must_use]
+pub const fn fnv_hash(mut bytes: u64) -> u64 {
+    let mut hash = INITIAL_STATE;
+    let mut i = 0;
+    while i < u64::BITS {
+        hash ^= bytes & 0xFF;
+        hash = hash.wrapping_mul(PRIME);
+        bytes >>= 8;
+        i += 1;
+    }
+    hash
+}
+
+fn unbiased_index_(mut idx: usize, len: usize) -> usize {
+    let range = usize::MAX - usize::MAX % len; // largest multiple of len
+    loop {
+        // hash step
+        idx ^= idx >> 33;
+        idx = idx.wrapping_mul(0xff51afd7ed558ccd);
+        idx ^= idx >> 33;
+        idx = idx.wrapping_mul(0xc4ceb9fe1a85ec53);
+        idx ^= idx >> 33;
+
+        if idx < range {
+            return idx % len;
+        }
+        // else retry with new idx (or re-hash)
+    }
+}
+
+fn unbiased_index(idx: usize, len: usize) -> usize {
+    // return unbiased_index_(idx + 1, len + 1) - 1;
+    return (fnv_hash(idx as u64) as usize) % len;
+}
+
 pub trait KeySet {
     fn new(capacity: usize) -> Self;
 
@@ -25,7 +64,8 @@ pub trait KeySet {
     fn remove_random(&mut self, rng: &mut impl Rng, distribution: &Distribution) -> Key {
         let x = distribution.evaluate(rng).clamp(0., 1. - f64::EPSILON);
         let idx = (x * self.len() as f64) as usize;
-        return self.remove(idx);
+        let idx_hashed = unbiased_index(idx, self.len());
+        return self.remove(idx_hashed);
     }
 
     fn remove_range(&mut self, idx_range: Range<usize>) -> (Key, Key);
@@ -51,7 +91,8 @@ pub trait KeySet {
     fn get_random(&self, rng: &mut impl Rng, distribution: &Distribution) -> &Key {
         let x = distribution.evaluate(rng).clamp(0., 1. - f64::EPSILON);
         let idx = (x * self.len() as f64) as usize;
-        return self.get(idx);
+        let idx_hashed = unbiased_index(idx, self.len());
+        return self.get(idx_hashed);
     }
 
     fn get_range_random(
