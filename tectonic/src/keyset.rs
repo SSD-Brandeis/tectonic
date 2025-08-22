@@ -8,8 +8,10 @@ use bloom::{ASMS, BloomFilter};
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 use std::ops::{Bound, Range};
+use std::rc::Rc;
 
-pub type Key = Box<[u8]>;
+// pub type Key = Box<[u8]>;
+pub type Key = Rc<[u8]>;
 
 // Modified from https://github.com/servo/rust-fnv/blob/main/lib.rs#L146-L157 (MIT)
 const INITIAL_STATE: u64 = 0xcbf2_9ce4_8422_2325;
@@ -189,82 +191,118 @@ pub struct VecOptionKeySet {
 }
 
 /// The threshold for the percentage of None values to trigger a filter operation.
-const VEC_OPTION_KEY_SET_FILTER_THRESHOLD: f64 = 0.1;
+const VEC_OPTION_KEY_SET_FILTER_THRESHOLD: f64 = 0.01;
 
 // FIXME: this needs to implemented with "generation indexing" / "slotmap"
-// impl VecOptionKeySet {
-//     fn maybe_flatten_in_place(&mut self) {
-//         if (self.none_count as f64 / self.keys.len() as f64) < VEC_OPTION_KEY_SET_FILTER_THRESHOLD {
-//             return;
-//         }
-//         self.keys.retain(Option::is_some);
-//         self.none_count = 0;
-//     }
-// }
+impl VecOptionKeySet {
+    fn maybe_flatten_in_place(&mut self) {
+        if (self.none_count as f64 / self.keys.len() as f64) < VEC_OPTION_KEY_SET_FILTER_THRESHOLD {
+            return;
+        }
+        self.keys.retain(Option::is_some);
+        self.none_count = 0;
+    }
 
-// impl KeySet for VecOptionKeySet {
-//     fn new(capacity: usize) -> Self {
-//         return Self {
-//             keys: Vec::with_capacity(capacity),
-//             sorted: true,
-//             none_count: 0,
-//         };
-//     }
-//
-//     fn len(&self) -> usize {
-//         return self.keys.len();
-//     }
-//
-//     fn is_empty(&self) -> bool {
-//         return self.keys.is_empty();
-//     }
-//
-//     fn push(&mut self, key: Key) {
-//         if self.sorted
-//             && self
-//                 .keys
-//                 .last()
-//                 .is_some_and(|last_key| last_key.as_ref() > Some(&key))
-//         {
-//             self.sorted = false;
-//         }
-//         self.keys.push(Some(key));
-//     }
-//
-//     fn remove(&mut self, idx: usize) -> Option<Key> {
-//         let key = self.keys[idx].take()?;
-//         self.none_count += 1;
-//         self.maybe_flatten_in_place();
-//         return Some(key);
-//     }
-//
-//     fn remove_range(&mut self, idx_range: Range<usize>) {
-//         // FIXME: This is technically incorrect, because the range could contain `None` values.
-//         // Never more than 10% (VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 %) of the keys tho, so
-//         // it might be ok.
-//         let taken_count = idx_range
-//             .filter(|&idx| self.keys[idx].take().is_some())
-//             .count();
-//         self.none_count += taken_count;
-//         self.maybe_flatten_in_place();
-//     }
-//
-//     fn get(&self, idx: usize) -> Option<&Key> {
-//         return self.keys.get(idx).and_then(|k| k.as_ref());
-//     }
-//
-//     fn contains(&self, key: &Key) -> bool {
-//         return self.keys.iter().any(|k| k.as_ref() == Some(key));
-//     }
-//
-//     fn sort(&mut self) {
-//         self.maybe_flatten_in_place();
-//         if !self.sorted {
-//             self.keys.sort();
-//             self.sorted = true;
-//         }
-//     }
-// }
+    fn maybe_remove(&mut self, idx: usize) -> Option<Key> {
+        let key = self.keys[idx].take()?;
+        self.none_count += 1;
+        self.maybe_flatten_in_place();
+        return Some(key);
+    }
+
+    fn maybe_get(&self, idx: usize) -> Option<&Key> {
+        return self.keys.get(idx).and_then(|k| k.as_ref());
+    }
+}
+
+impl KeySet for VecOptionKeySet {
+    fn new(capacity: usize) -> Self {
+        return Self {
+            keys: Vec::with_capacity(capacity),
+            sorted: true,
+            none_count: 0,
+        };
+    }
+
+    fn len(&self) -> usize {
+        return self.keys.len();
+    }
+
+    fn is_empty(&self) -> bool {
+        return self.keys.is_empty();
+    }
+
+    fn push(&mut self, key: Key) {
+        if self.sorted
+            && self
+                .keys
+                .last()
+                .is_some_and(|last_key| last_key.as_ref() > Some(&key))
+        {
+            self.sorted = false;
+        }
+        self.keys.push(Some(key));
+    }
+
+    fn remove(&mut self, mut idx: usize) -> Key {
+        for _ in 0..self.keys.len() {
+            match self.maybe_remove(idx) {
+                Some(key) => {
+                    return key;
+                }
+                None => {
+                    idx = (idx + 1) % self.keys.len();
+                }
+            }
+        }
+        panic!("Called remove on an empty keyset");
+    }
+
+    fn remove_range(&mut self, idx_range: Range<usize>) -> (Key, Key) {
+        // FIXME: This is technically incorrect, because the range could contain `None` values.
+        // Never more than VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 % of the keys tho, so
+        // it might be ok.
+        let mut drain = self.keys.drain(idx_range.clone()).flatten();
+        let key1 = drain.next().expect("to have at least one element");
+        let (key1, key2) = match drain.next_back() {
+            Some(key2) => (key1, key2),
+            None => (key1.clone(), key1),
+        };
+
+        let some_count = drain.count() + 2;
+        let none_count = idx_range.len() - some_count;
+        self.none_count += none_count;
+        self.maybe_flatten_in_place();
+
+        return (key1, key2);
+    }
+
+    fn get(&self, mut idx: usize) -> &Key {
+        for _ in 0..self.keys.len() {
+            match self.maybe_get(idx) {
+                Some(key) => {
+                    return key;
+                }
+                None => {
+                    idx = (idx + 1) % self.keys.len();
+                }
+            }
+        }
+        panic!("Called get on an empty keyset");
+    }
+
+    fn contains(&self, key: &Key) -> bool {
+        return self.keys.iter().any(|k| k.as_ref() == Some(key));
+    }
+
+    fn sort(&mut self) {
+        if !self.sorted {
+            self.maybe_flatten_in_place();
+            self.keys.sort();
+            self.sorted = true;
+        }
+    }
+}
 
 pub struct VecHashSetKeySet {
     keys: Vec<Key>,

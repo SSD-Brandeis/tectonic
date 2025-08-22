@@ -360,7 +360,7 @@ impl TryFrom<StringExprInnerConfig> for StringExprInner {
                 let rng_ref = &mut rng;
                 let mut hot_ranges = Vec::with_capacity(amount);
                 for _ in 0..amount {
-                    let key: Box<[u8]> = rng_ref.sample_iter(Alphanumeric).take(len).collect();
+                    let key: Key = rng_ref.sample_iter(Alphanumeric).take(len).collect();
                     hot_ranges.push(key);
                 }
                 Ok(Self::HotRange {
@@ -442,7 +442,7 @@ impl StringExpr {
                             let index = rng.random_range(0..hot_ranges.len());
                             hot_ranges[index].clone()
                         } else {
-                            let key: Box<[u8]> = rng.sample_iter(Alphanumeric).take(*len).collect();
+                            let key: Key = rng.sample_iter(Alphanumeric).take(*len).collect();
                             Key::from(key)
                         };
                     }
@@ -522,7 +522,7 @@ impl StringExpr {
                             let index = rng.random_range(0..hot_ranges.len());
                             hot_ranges[index].clone()
                         } else {
-                            let key: Box<[u8]> = rng.sample_iter(Alphanumeric).take(*len).collect();
+                            let key: Key = rng.sample_iter(Alphanumeric).take(*len).collect();
                             Key::from(key)
                         };
                         writer.write_all(&key).context("Writing weighted string")

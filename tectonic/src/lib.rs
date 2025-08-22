@@ -6,7 +6,6 @@
 #![allow(dead_code)]
 
 use anyhow::{Context, Result, anyhow, bail};
-use rand::distr::Alphanumeric;
 use rand::prelude::SliceRandom;
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
@@ -14,6 +13,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::iter::repeat_n;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 use tracing::debug;
 
 mod keyset;
@@ -30,7 +30,7 @@ pub mod spec;
 // - query point empty
 // - query range
 
-use crate::keyset::{Key, KeySet, VecBloomFilterKeySet};
+use crate::keyset::{Key, KeySet, VecBloomFilterKeySet, VecHashMapIndexKeySet, VecOptionKeySet};
 use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
@@ -145,14 +145,10 @@ enum Op {
     RangeQuery,
 }
 
-#[inline]
-fn gen_string(rng: &mut Xoshiro256Plus, len: usize) -> Key {
-    return rng.sample_iter(Alphanumeric).take(len).collect();
-}
-
 /// Generates a workload given the spec and writes it to the given writer.
 pub fn write_operations(writer: &mut impl Write, workload: &WorkloadSpec) -> Result<()> {
-    write_operations_with_keyset(writer, workload, VecBloomFilterKeySet::new)
+    // write_operations_with_keyset(writer, workload, VecBloomFilterKeySet::new)
+    write_operations_with_keyset(writer, workload, VecOptionKeySet::new)
 }
 
 pub fn write_operations_with_keyset<KeySetT: KeySet>(
@@ -162,6 +158,15 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
 ) -> Result<()> {
     let mut rng = Xoshiro256Plus::from_os_rng();
     // let mut keys_prev_sections = BloomFilter::with_rate(0.01, todo!());
+    let mut time_insert = Duration::from_secs(0);
+    let mut time_update = Duration::from_secs(0);
+    let mut time_merge = Duration::from_secs(0);
+    let mut time_delete_point = Duration::from_secs(0);
+    let mut time_delete_point_empty = Duration::from_secs(0);
+    let mut time_delete_range = Duration::from_secs(0);
+    let mut time_query_point = Duration::from_secs(0);
+    let mut time_query_point_empty = Duration::from_secs(0);
+    let mut time_query_range = Duration::from_secs(0);
 
     for section in &workload.sections {
         let insert_counts: Vec<usize> = section
@@ -279,10 +284,6 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                     .expect("inserts to exist if insert count > 0");
                 markers.extend(repeat_n(Op::Insert, insert_count - 1));
 
-                // let key_len = is.key_len.evaluate(rng_ref) as usize;
-                // let key = gen_string(rng_ref, key_len);
-                // let val_len = is.val_len.evaluate(rng_ref) as usize;
-                // let val = gen_string(rng_ref, val_len);
                 let key = key_pool
                     .as_mut()
                     .and_then(|pool| pool.pop())
@@ -312,12 +313,16 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             markers.shuffle(rng_ref);
 
             for (i, marker) in markers.iter().enumerate() {
-                if i % 10000 == 0 {
-                    debug!("Generating operation {i}");
+                if i.is_multiple_of(markers.len() / 10) {
+                    debug!(
+                        "Generating operation {i} ({}%)",
+                        (i as f64 * 100.0 / markers.len() as f64).round()
+                    );
                 }
 
                 match marker {
                     Op::Insert => {
+                        let start = Instant::now();
                         let is = group.inserts.as_ref().ok_or_else(|| {
                             anyhow!("Insert marker can only appear when inserts is not None")
                         })?;
@@ -336,8 +341,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             is.character_set.or(character_set),
                         )?;
                         keys_valid.push(key);
+                        time_insert += Instant::now().duration_since(start);
                     }
                     Op::Update => {
+                        let start = Instant::now();
                         let us = group.updates.as_ref().ok_or_else(|| {
                             anyhow!("Update marker can only appear when updates is not None")
                         })?;
@@ -353,8 +360,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             &us.val,
                             us.character_set.or(character_set),
                         )?;
+                        time_update += Instant::now().duration_since(start);
                     }
                     Op::Merge => {
+                        let start = Instant::now();
                         let ms = group.merges.as_ref().ok_or_else(|| {
                             anyhow!("Merge marker can only appear when updates is not None")
                         })?;
@@ -370,8 +379,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             &ms.val,
                             ms.character_set.or(character_set),
                         )?;
+                        time_merge += Instant::now().duration_since(start);
                     }
                     Op::PointDelete => {
+                        let start = Instant::now();
                         let pds = group.point_deletes.as_ref().ok_or_else(|| {
                             anyhow!("Point delete marker can only appear when updates is not None")
                         })?;
@@ -379,8 +390,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         let key = keys_valid.remove_random(rng_ref, &pds.selection);
 
                         AsciiOperationFormatter::write_point_delete(writer, &key)?;
+                        time_delete_point += Instant::now().duration_since(start);
                     }
                     Op::PointQuery => {
+                        let start = Instant::now();
                         if keys_valid.is_empty() {
                             bail!("Cannot have point queries when there are no valid keys.");
                         }
@@ -389,9 +402,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         })?;
                         // keys_valid.sort();
                         let key = keys_valid.get_random(rng_ref, &pqs.selection);
-                        AsciiOperationFormatter::write_point_query(writer, key)?
+                        AsciiOperationFormatter::write_point_query(writer, key)?;
+                        time_query_point += Instant::now().duration_since(start);
                     }
                     Op::PointDeleteEmpty => {
+                        let start = Instant::now();
                         let epd = group.empty_point_deletes.as_ref().ok_or_else(|| {
                             anyhow!("Empty point delete marker can only appear when empty_point_deletes is not None")
                         })?;
@@ -404,9 +419,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             }
                         };
 
-                        AsciiOperationFormatter::write_point_delete(writer, &key)?
+                        AsciiOperationFormatter::write_point_delete(writer, &key)?;
+                        time_delete_point_empty += Instant::now().duration_since(start);
                     }
                     Op::EmptyPointQuery => {
+                        let start = Instant::now();
                         let epq = group.empty_point_queries.as_ref().ok_or_else(|| {
                             anyhow!("Empty point query marker can only appear when empty_point_queries is not None")
                         })?;
@@ -418,9 +435,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             }
                         };
 
-                        AsciiOperationFormatter::write_point_query(writer, &key)?
+                        AsciiOperationFormatter::write_point_query(writer, &key)?;
+                        time_query_point_empty += Instant::now().duration_since(start);
                     }
                     Op::RangeQuery => {
+                        let start = Instant::now();
                         let rqs = group.range_queries.as_ref().ok_or_else(|| {
                             anyhow!(
                                 "Range query marker can only appear when range_queries is not None"
@@ -448,8 +467,10 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                                 AsciiOperationFormatter::write_range_query(writer, key1, key2)?
                             }
                         }
+                        time_query_range += Instant::now().duration_since(start);
                     }
                     Op::RangeDelete => {
+                        let start = Instant::now();
                         let rds = group.range_deletes.as_ref().ok_or_else(|| {
                             anyhow!(
                                 "RangeDelete marker can only appear when range_deletes is not None",
@@ -477,11 +498,24 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                                 AsciiOperationFormatter::write_range_delete(writer, key1, key2)?
                             }
                         }
+                        time_delete_range += Instant::now().duration_since(start);
                     }
                 }
             }
         }
     }
+    debug!(
+        insert = %time_insert.as_secs_f64(),
+        update = %time_update.as_secs_f64(),
+        merge = %time_merge.as_secs_f64(),
+        delete_point = %time_delete_point.as_secs_f64(),
+        delete_point_empty = %time_delete_point_empty.as_secs_f64(),
+        delete_range = %time_delete_range.as_secs_f64(),
+        query_point = %time_query_point.as_secs_f64(),
+        query_point_empty = %time_query_point_empty.as_secs_f64(),
+        query_range = %time_query_range.as_secs_f64(),
+        "operation generation timings (in seconds)"
+    );
 
     return Ok(());
 }
