@@ -242,14 +242,6 @@ impl NumberExpr {
     }
 }
 
-#[derive(serde::Deserialize, JsonSchema, Default, Clone, Debug)]
-#[serde(rename_all = "snake_case")]
-/// Different selection strategies for keys in a workload.
-pub enum KeyDistribution {
-    #[default]
-    Uniform,
-}
-
 #[derive(serde::Deserialize, JsonSchema, Clone, Debug)]
 pub struct Weight {
     /// The weight of the item.
