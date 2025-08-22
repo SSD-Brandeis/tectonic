@@ -529,7 +529,7 @@ impl StringExpr {
 /// Inserts specification.
 pub struct Inserts {
     /// Number of inserts
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Key
     pub key: StringExpr,
     /// Value
@@ -542,7 +542,7 @@ pub struct Inserts {
 /// Updates specification.
 pub struct Updates {
     /// Number of updates
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Value
     pub val: StringExpr,
     /// Key selection strategy
@@ -558,7 +558,7 @@ pub struct Updates {
 /// Merges (read-modify-write) specification.
 pub struct Merges {
     /// Number of merges
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Value
     pub val: StringExpr,
     /// Key selection strategy
@@ -574,7 +574,7 @@ pub struct Merges {
 /// Non-empty point deletes specification.
 pub struct PointDeletes {
     /// Number of non-empty point deletes
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Key selection strategy
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
@@ -586,7 +586,7 @@ pub struct PointDeletes {
 /// Empty point deletes specification.
 pub struct EmptyPointDeletes {
     /// Number of empty point deletes
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Key
     pub key: StringExpr,
     #[serde(default)]
@@ -596,7 +596,7 @@ pub struct EmptyPointDeletes {
 /// Range deletes specification.
 pub struct RangeDeletes {
     /// Number of range deletes
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Selectivity of range deletes. Based off of the range of valid keys, not the full key space.
     pub selectivity: NumberExpr,
     /// Key selection strategy of the start key
@@ -615,7 +615,7 @@ pub struct RangeDeletes {
 /// Non-empty point queries specification.
 pub struct PointQueries {
     /// Number of point queries
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Key selection strategy of the start key
     #[serde(default = "Distribution::default_key_selection")]
     pub selection: Distribution,
@@ -627,7 +627,7 @@ pub struct PointQueries {
 /// Empty point queries specification.
 pub struct EmptyPointQueries {
     /// Number of point queries
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Key
     pub key: StringExpr,
     #[serde(default)]
@@ -638,7 +638,7 @@ pub struct EmptyPointQueries {
 /// Range queries specification.
 pub struct RangeQueries {
     /// Number of range queries
-    pub amount: NumberExpr,
+    pub op_count: NumberExpr,
     /// Selectivity of range queries. Based off of the range of valid keys, not the full key-space.
     pub selectivity: NumberExpr,
     /// Key selection strategy of the start key
@@ -677,52 +677,6 @@ pub struct WorkloadSpecGroup {
     pub character_set: Option<CharacterSet>,
 }
 
-// impl WorkloadSpecGroup {
-//     pub fn operation_count(&self) -> usize {
-//         let operation_count = self.inserts.map_or(0, |s| s.amount)
-//             + self.updates.map_or(0, |us| us.amount)
-//             + self.point_queries.map_or(0, |is| is.amount)
-//             + self.empty_point_queries.map_or(0, |is| is.amount)
-//             + self.range_queries.map_or(0, |is| is.amount)
-//             + self.point_deletes.map_or(0, |is| is.amount)
-//             + self.range_deletes.map_or(0, |is| is.amount);
-//         return operation_count;
-//     }
-//
-//     pub fn bytes_count(&self, insert_key_len: usize) -> usize {
-//         let bytes_insert = self.inserts.map_or(0, |is| {
-//             (b"I ".len() + is.key_len + b" ".len() + is.val_len + b"\n".len()) * is.amount
-//         });
-//         let bytes_update = self.updates.map_or(0, |us| {
-//             (b"U ".len() + insert_key_len + b" ".len() + us.val_len + b"\n".len()) * us.amount
-//         });
-//         let bytes_delete = self.point_deletes.map_or(0, |ds| {
-//             (b"D ".len() + insert_key_len + b"\n".len()) * ds.amount
-//         });
-//         let bytes_point_queries = self.point_queries.map_or(0, |pq| {
-//             (b"P ".len() + insert_key_len + b"\n".len()) * pq.amount
-//         });
-//         let bytes_empty_point_queries = self.empty_point_queries.map_or(0, |epq| {
-//             (b"P ".len() + epq.key_len + b"\n".len()) * epq.amount
-//         });
-//         let bytes_range_queries = self.range_queries.map_or(0, |rq| {
-//             (b"S ".len() + insert_key_len + b" ".len() + insert_key_len + b"\n".len())
-//                 * rq.amount
-//         });
-//         let bytes_range_deletes = self.range_deletes.map_or(0, |rd| {
-//             (b"S ".len() + insert_key_len + b" ".len() + insert_key_len + b"\n".len())
-//                 * rd.amount
-//         });
-//         return bytes_insert
-//             + bytes_update
-//             + bytes_delete
-//             + bytes_point_queries
-//             + bytes_empty_point_queries
-//             + bytes_range_queries
-//             + bytes_range_deletes;
-//     }
-// }
-
 #[derive(serde::Deserialize, JsonSchema, Default, Copy, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum CharacterSet {
@@ -754,33 +708,6 @@ pub struct WorkloadSpecSection {
     pub skip_key_contains_check: bool,
 }
 
-// impl WorkloadSpecSection {
-//     pub fn operation_count(&self) -> usize {
-//         return self.groups.iter().map(|g| g.operation_count()).sum();
-//     }
-//
-//     pub fn bytes_count(&self) -> usize {
-//         let insert_key_len = self
-//             .groups
-//             .iter()
-//             .map(|g| g.inserts.map_or(0, |is| is.key_len))
-//             .max()
-//             .expect("No groups in workload spec");
-//         return self
-//             .groups
-//             .iter()
-//             .map(|g| g.bytes_count(insert_key_len))
-//             .sum();
-//     }
-//
-//     pub fn insert_count(&self) -> usize {
-//         return self
-//             .groups
-//             .iter()
-//             .map(|g| g.inserts.map_or(0, |is| is.amount))
-//             .sum();
-//     }
-// }
 
 #[derive(serde::Deserialize, JsonSchema, Debug, Clone)]
 pub struct WorkloadSpec {

@@ -10,7 +10,7 @@
             "l": 100
           },
           "inserts": {
-            "amount": 10000000,
+            "op_count": 10000000,
             "key": {
               "uniform": {
                 "len": 128

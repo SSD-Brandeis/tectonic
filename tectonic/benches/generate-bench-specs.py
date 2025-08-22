@@ -2,14 +2,14 @@ from itertools import combinations
 import json
 
 config = {
-    "inserts": {"amount": 1000, "key_len": 8, "val_len": 8},
-    "updates": {"amount": 1000, "val_len": 8},
-    "point_deletes": {"amount": 1000},
-    "empty_point_deletes": {"amount": 1000, "key_len": 8},
-    "range_deletes": {"amount": 100, "selectivity": 0.01},
-    "point_queries": {"amount": 1000},
-    "empty_point_queries": {"amount": 1000, "key_len": 8},
-    "range_queries": {"amount": 1000, "selectivity": 0.1},
+    "inserts": {"op_count": 1000, "key_len": 8, "val_len": 8},
+    "updates": {"op_count": 1000, "val_len": 8},
+    "point_deletes": {"op_count": 1000},
+    "empty_point_deletes": {"op_count": 1000, "key_len": 8},
+    "range_deletes": {"op_count": 100, "selectivity": 0.01},
+    "point_queries": {"op_count": 1000},
+    "empty_point_queries": {"op_count": 1000, "key_len": 8},
+    "range_queries": {"op_count": 1000, "selectivity": 0.1},
 }
 
 
@@ -27,14 +27,17 @@ for i in range(1, len(operations) + 1):
 
         workload_spec = {
             "$schema": "../../../workload_schema.json",
-            "sections": [{"groups": [
+            "sections": [
                 {
-                    "inserts": {"amount": 10000, "key_len": 8, "val_len": 8},
-                },
-                group
-            ]}],
+                    "groups": [
+                        {
+                            "inserts": {"op_count": 10000, "key_len": 8, "val_len": 8},
+                        },
+                        group,
+                    ]
+                }
+            ],
         }
 
         with open(name, "w") as f:
             f.write(json.dumps(workload_spec))
-

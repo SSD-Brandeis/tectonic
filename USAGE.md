@@ -1,7 +1,6 @@
 # Using `tectonic`
 
-> [!NOTE]
-> `tectonic` spec files have a schema, which can help when writing them.
+> [!NOTE] > `tectonic` spec files have a schema, which can help when writing them.
 > Output it with `tectonic schema > workload_schema.json`. In each of your spec
 > files, use the `$schema` key in your top level object
 > (`{"$schema": "./workload_schema.json"}`) and you will get autocomplete and
@@ -104,7 +103,7 @@ generated. This all happens within the same _group_
 When generating inserts, you can control the `amount` of inserts that will be
 generated, the `key`, and the `val`.
 
-- `amount` is a number, e.g. 100000.
+- `op_count` is a number, e.g. 100000.
 - `key` is a `StringExpr`
 - `val` is a `StringExpr`
 
@@ -113,7 +112,7 @@ generated, the `key`, and the `val`.
 When generating updates/merges, you can control the `amount`, the `selection`
 strategy, and the `val`.
 
-- `amount` is a number, e.g. 100000.
+- `op_count` is a number, e.g. 100000.
 - `selection` is a `NumberExpr`
 - `val` is a `StringExpr`
 
@@ -122,7 +121,7 @@ strategy, and the `val`.
 When generating point deletes/queries, you can control the `amount` and the
 `selection` strategy.
 
-- `amount` is a number, e.g. 100000.
+- `op_count` is a number, e.g. 100000.
 - `selection` is a `NumberExpr`
 
 ### Empty Point Deletes/Empty Point Queries
@@ -130,7 +129,7 @@ When generating point deletes/queries, you can control the `amount` and the
 When generating point deletes/queries, you can control the `amount` and the
 `key`.
 
-- `amount` is a number, e.g. 100000.
+- `op_count` is a number, e.g. 100000.
 - `key` is a `StringExpr`
 
 ### Range Deletes/Range Queries
@@ -138,7 +137,7 @@ When generating point deletes/queries, you can control the `amount` and the
 When generating point deletes/queries, you can control the `amount`, the
 `selectivity` (proportion of keys in the range), and the `selection` strategy.
 
-- `amount` is a number, e.g. 100000.
+- `op_count` is a number, e.g. 100000.
 - `selectivity` is a `NumberExpr`
 - `selection` is a `NumberExpr`
 

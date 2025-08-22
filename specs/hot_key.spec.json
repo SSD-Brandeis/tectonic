@@ -6,7 +6,7 @@
       "groups": [
         {
           "inserts": {
-            "amount": 5000000,
+            "op_count": 5000000,
             "key": {
               "hot_range": {
                 "amount": 100000,
@@ -22,7 +22,7 @@
             }
           },
           "point_queries": {
-            "amount": 5000000,
+            "op_count": 5000000,
             "key": {
               "hot_range": {
                 "amount": 100000,

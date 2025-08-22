@@ -3,7 +3,7 @@
   "sections": [
     {
       "inserts": {
-        "amount": "hi",
+        "op_count": "hi",
         "key_len": 0.5,
         "val_len": false
       }

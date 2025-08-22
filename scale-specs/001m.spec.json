@@ -5,7 +5,7 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1000000,
+            "op_count": 1000000,
             "key": {
               "uniform": {
                 "len": 32,
@@ -21,7 +21,7 @@
         },
         {
           "inserts": {
-            "amount": 800000,
+            "op_count": 800000,
             "key": {
               "uniform": {
                 "len": 32,
@@ -35,7 +35,7 @@
             }
           },
           "updates": {
-            "amount": 100000,
+            "op_count": 100000,
             "val": {
               "uniform": {
                 "len": 992
@@ -43,7 +43,7 @@
             }
           },
           "point_queries": {
-            "amount": 100000
+            "op_count": 100000
           }
         }
       ]

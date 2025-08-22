@@ -6,14 +6,14 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": { "uniform": { "len": 20 } },
             "val": { "uniform": { "len": 20 } }
           }
         },
         {
           "inserts": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": {
               "weighted": [
                 {
@@ -52,17 +52,17 @@
         },
         {
           "inserts": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": { "uniform": { "len": 8 } },
             "val": { "uniform": { "len": 8 } }
           },
           "updates": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": { "uniform": { "len": 8 } },
             "val": { "uniform": { "len": 8 } }
           },
           "merges": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": { "uniform": { "len": 8 } },
             "val": {
               "weighted": [
@@ -71,22 +71,22 @@
               ]
             }
           },
-          "point_queries": { "amount": 1e1 },
+          "point_queries": { "op_count": 1e1 },
           "empty_point_queries": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": { "uniform": { "len": 8 } }
           },
           "range_queries": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "selectivity": { "uniform": { "min": 0.01, "max": 0.1 } }
           },
-          "point_deletes": { "amount": 1e1 },
+          "point_deletes": { "op_count": 1e1 },
           "empty_point_deletes": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "key": { "uniform": { "len": 8 } }
           },
           "range_deletes": {
-            "amount": 1e1,
+            "op_count": 1e1,
             "selectivity": { "normal": { "mean": 0.005, "std_dev": 0.001 } }
           }
         }

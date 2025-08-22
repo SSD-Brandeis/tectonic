@@ -6,7 +6,7 @@
       "groups": [
         {
           "inserts": {
-            "amount": 6000000,
+            "op_count": 6000000,
             "key": {
               "uniform": {
                 "len": 128
@@ -19,7 +19,7 @@
             }
           },
           "point_queries": {
-            "amount": 2000000,
+            "op_count": 2000000,
             "selection": {
               "log_normal": {
                 "mean": 0.4,
@@ -28,7 +28,7 @@
             }
           },
           "point_deletes": {
-            "amount": 800000,
+            "op_count": 800000,
             "selection": {
               "normal": {
                 "mean": 0.5,
@@ -37,7 +37,7 @@
             }
           },
           "empty_point_queries": {
-            "amount": 1000000,
+            "op_count": 1000000,
             "key": {
               "uniform": {
                 "len": 128
@@ -45,7 +45,7 @@
             }
           },
           "range_deletes": {
-            "amount": 1000,
+            "op_count": 1000,
             "selectivity": {
               "pareto": {
                 "scale": 1.0,

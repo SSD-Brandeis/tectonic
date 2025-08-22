@@ -31,22 +31,22 @@ for baseline in baselines:
                 "groups": [
                     {
                         "inserts": {
-                            "amount": baseline,
+                            "op_count": baseline,
                             "key": {"uniform": {"len": 32, "character_set": "numeric"}},
                             "val": {"uniform": {"len": 992}},
                         }
                     },
                     {
                         "inserts": {
-                            "amount": round(baseline * i_pct),
+                            "op_count": round(baseline * i_pct),
                             "key": {"uniform": {"len": 32, "character_set": "numeric"}},
                             "val": {"uniform": {"len": 992}},
                         },
                         "updates": {
-                            "amount": round(baseline * u_pct),
+                            "op_count": round(baseline * u_pct),
                             "val": {"uniform": {"len": 992}},
                         },
-                        "point_queries": {"amount": round(baseline * pq_pct)},
+                        "point_queries": {"op_count": round(baseline * pq_pct)},
                     },
                 ]
             }
@@ -60,31 +60,31 @@ for baseline in baselines:
                 "groups": [
                     {
                         "inserts": {
-                            "amount": baseline,
+                            "op_count": baseline,
                             "key": {"uniform": {"len": 32, "character_set": "numeric"}},
                             "val": {"uniform": {"len": 992}},
                         }
                     },
                     {
                         "inserts": {
-                            "amount": round(baseline * complex_i_pct),
+                            "op_count": round(baseline * complex_i_pct),
                             "key": {"uniform": {"len": 32, "character_set": "numeric"}},
                             "val": {"uniform": {"len": 992}},
                         },
-                        "point_queries": {"amount": round(baseline * complex_pq_pct)},
+                        "point_queries": {"op_count": round(baseline * complex_pq_pct)},
                         "empty_point_queries": {
-                            "amount": round(baseline * complex_epq_pct),
+                            "op_count": round(baseline * complex_epq_pct),
                             "key": {"uniform": {"len": 32, "character_set": "numeric"}},
                         },
                         "range_queries": {
-                            "amount": round(baseline * complex_rq_pct),
+                            "op_count": round(baseline * complex_rq_pct),
                             "selectivity": 0.1,
                         },
                         "point_deletes": {
-                            "amount": round(baseline * complex_pd_pct),
+                            "op_count": round(baseline * complex_pd_pct),
                         },
                         "range_deletes": {
-                            "amount": round(baseline * complex_rd_pct),
+                            "op_count": round(baseline * complex_rd_pct),
                             "selectivity": 0.01,
                         },
                     },

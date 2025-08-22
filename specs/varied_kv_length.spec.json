@@ -6,7 +6,7 @@
       "groups": [
         {
           "inserts": {
-            "amount": 5000000,
+            "op_count": 5000000,
             "key": {
               "weighted": [
                 {
@@ -65,7 +65,7 @@
             }
           },
           "point_queries": {
-            "amount": 5000000
+            "op_count": 5000000
           }
         }
       ]

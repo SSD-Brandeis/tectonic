@@ -3,7 +3,7 @@
   "sections": [
     {
       "inserts": {
-        "amount": 1
+        "op_count": 1
       }
     }
   ]

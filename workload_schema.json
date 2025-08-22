@@ -267,10 +267,6 @@
       "description": "Empty point deletes specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of empty point deletes",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -284,10 +280,14 @@
         "key": {
           "description": "Key",
           "$ref": "#/$defs/StringExpr"
+        },
+        "op_count": {
+          "description": "Number of empty point deletes",
+          "$ref": "#/$defs/NumberExpr"
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "key"
       ]
     },
@@ -295,10 +295,6 @@
       "description": "Empty point queries specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of point queries",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -312,10 +308,14 @@
         "key": {
           "description": "Key",
           "$ref": "#/$defs/StringExpr"
+        },
+        "op_count": {
+          "description": "Number of point queries",
+          "$ref": "#/$defs/NumberExpr"
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "key"
       ]
     },
@@ -323,10 +323,6 @@
       "description": "Inserts specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of inserts",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -341,13 +337,17 @@
           "description": "Key",
           "$ref": "#/$defs/StringExpr"
         },
+        "op_count": {
+          "description": "Number of inserts",
+          "$ref": "#/$defs/NumberExpr"
+        },
         "val": {
           "description": "Value",
           "$ref": "#/$defs/StringExpr"
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "key",
         "val"
       ]
@@ -356,10 +356,6 @@
       "description": "Merges (read-modify-write) specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of merges",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -369,6 +365,10 @@
               "type": "null"
             }
           ]
+        },
+        "op_count": {
+          "description": "Number of merges",
+          "$ref": "#/$defs/NumberExpr"
         },
         "selection": {
           "description": "Key selection strategy",
@@ -380,7 +380,7 @@
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "val"
       ]
     },
@@ -399,7 +399,7 @@
       "description": "Non-empty point deletes specification.",
       "type": "object",
       "properties": {
-        "amount": {
+        "op_count": {
           "description": "Number of non-empty point deletes",
           "$ref": "#/$defs/NumberExpr"
         },
@@ -409,14 +409,14 @@
         }
       },
       "required": [
-        "amount"
+        "op_count"
       ]
     },
     "PointQueries": {
       "description": "Non-empty point queries specification.",
       "type": "object",
       "properties": {
-        "amount": {
+        "op_count": {
           "description": "Number of point queries",
           "$ref": "#/$defs/NumberExpr"
         },
@@ -426,17 +426,13 @@
         }
       },
       "required": [
-        "amount"
+        "op_count"
       ]
     },
     "RangeDeletes": {
       "description": "Range deletes specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of range deletes",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -446,6 +442,10 @@
               "type": "null"
             }
           ]
+        },
+        "op_count": {
+          "description": "Number of range deletes",
+          "$ref": "#/$defs/NumberExpr"
         },
         "range_format": {
           "description": "The format for the range",
@@ -461,7 +461,7 @@
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "selectivity"
       ]
     },
@@ -483,10 +483,6 @@
       "description": "Range queries specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of range queries",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -496,6 +492,10 @@
               "type": "null"
             }
           ]
+        },
+        "op_count": {
+          "description": "Number of range queries",
+          "$ref": "#/$defs/NumberExpr"
         },
         "range_format": {
           "description": "The format for the range",
@@ -511,7 +511,7 @@
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "selectivity"
       ]
     },
@@ -658,10 +658,6 @@
       "description": "Updates specification.",
       "type": "object",
       "properties": {
-        "amount": {
-          "description": "Number of updates",
-          "$ref": "#/$defs/NumberExpr"
-        },
         "character_set": {
           "anyOf": [
             {
@@ -671,6 +667,10 @@
               "type": "null"
             }
           ]
+        },
+        "op_count": {
+          "description": "Number of updates",
+          "$ref": "#/$defs/NumberExpr"
         },
         "selection": {
           "description": "Key selection strategy",
@@ -682,7 +682,7 @@
         }
       },
       "required": [
-        "amount",
+        "op_count",
         "val"
       ]
     },

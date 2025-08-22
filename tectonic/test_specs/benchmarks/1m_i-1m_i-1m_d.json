@@ -5,19 +5,19 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1000000,
+            "op_count": 1000000,
             "key_len": 128,
             "val_len": 896
           }
         },
         {
           "inserts": {
-            "amount": 1000,
+            "op_count": 1000,
             "key_len": 128,
             "val_len": 896
           },
           "deletes": {
-            "amount": 1000
+            "op_count": 1000
           }
         }
       ]

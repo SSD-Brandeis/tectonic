@@ -5,7 +5,7 @@
       "groups": [
         {
           "inserts": {
-            "amount": 1000000,
+            "op_count": 1000000,
             "key": {
               "segmented": {
                 "separator": "",
@@ -24,7 +24,7 @@
         },
         {
           "point_queries": {
-            "amount": 500000,
+            "op_count": 500000,
             "selection": {
               "beta": {
                 "alpha": 1,
@@ -33,7 +33,7 @@
             }
           },
           "empty_point_queries": {
-            "amount": 50000,
+            "op_count": 50000,
             "key": {
               "segmented": {
                 "separator": "",
@@ -53,11 +53,11 @@
             }
           },
           "range_queries": {
-            "amount": 5000,
+            "op_count": 5000,
             "selectivity": { "normal": { "mean": 0.01, "std_dev": 0.005 } }
           },
           "updates": {
-            "amount": 500000,
+            "op_count": 500000,
             "val": {
               "uniform": { "len": 128 }
             },

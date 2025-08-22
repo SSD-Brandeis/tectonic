@@ -5,32 +5,32 @@
       "groups": [
         {
           "inserts": {
-            "amount": 100,
+            "op_count": 100,
             "key_len": 16,
             "val_len": 16
           }
         },
         {
           "updates": {
-            "amount": 50,
+            "op_count": 50,
             "val_len": 48
           }
         },
         {
           "point_queries": {
-            "amount": 8000
+            "op_count": 8000
           },
           "range_queries": {
-            "amount": 2000,
+            "op_count": 2000,
             "selectivity": 0.2
           }
         },
         {
           "point_queries": {
-            "amount": 1000
+            "op_count": 1000
           },
           "deletes": {
-            "amount": 1000
+            "op_count": 1000
           }
         }
       ]

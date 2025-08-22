@@ -30,7 +30,7 @@ pub mod spec;
 // - query point empty
 // - query range
 
-use crate::keyset::{Key, KeySet, VecBloomFilterKeySet, VecHashMapIndexKeySet, VecOptionKeySet};
+use crate::keyset::{Key, KeySet, VecOptionKeySet};
 use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
@@ -175,7 +175,7 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             .map(|g| {
                 g.inserts
                     .as_ref()
-                    .map_or(0, |is| is.amount.evaluate(&mut rng) as usize)
+                    .map_or(0, |is| is.op_count.evaluate(&mut rng) as usize)
             })
             .collect();
 
@@ -197,35 +197,35 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
             let update_count = group
                 .updates
                 .as_ref()
-                .map_or(0, |us| us.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |us| us.op_count.evaluate(rng_ref) as usize);
             let merge_count = group
                 .merges
                 .as_ref()
-                .map_or(0, |us| us.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |us| us.op_count.evaluate(rng_ref) as usize);
             let delete_point_count = group
                 .point_deletes
                 .as_ref()
-                .map_or(0, |dps| dps.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |dps| dps.op_count.evaluate(rng_ref) as usize);
             let delete_point_empty_count = group
                 .empty_point_deletes
                 .as_ref()
-                .map_or(0, |dpes| dpes.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |dpes| dpes.op_count.evaluate(rng_ref) as usize);
             let delete_range_count = group
                 .range_deletes
                 .as_ref()
-                .map_or(0, |drs| drs.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |drs| drs.op_count.evaluate(rng_ref) as usize);
             let query_point_count = group
                 .point_queries
                 .as_ref()
-                .map_or(0, |drs| drs.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |drs| drs.op_count.evaluate(rng_ref) as usize);
             let query_point_empty_count = group
                 .empty_point_queries
                 .as_ref()
-                .map_or(0, |qpes| qpes.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |qpes| qpes.op_count.evaluate(rng_ref) as usize);
             let query_range_count = group
                 .range_queries
                 .as_ref()
-                .map_or(0, |drs| drs.amount.evaluate(rng_ref) as usize);
+                .map_or(0, |drs| drs.op_count.evaluate(rng_ref) as usize);
 
             debug!(
                 ?insert_count,
