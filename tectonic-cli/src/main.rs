@@ -1,6 +1,8 @@
 #![allow(clippy::needless_return)]
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use rayon::iter::ParallelIterator;
+use rayon::prelude::ParallelBridge;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -83,7 +85,7 @@ fn invoke_generate(workload_path: &str, output: Option<&str>) -> Result<()> {
             fs::create_dir_all(&output_dir)?;
         }
 
-        for entry in WalkDir::new(&workload_path)
+        WalkDir::new(&workload_path)
             .follow_links(true)
             .into_iter()
             .filter_map(Result::ok)
@@ -98,18 +100,20 @@ fn invoke_generate(workload_path: &str, output: Option<&str>) -> Result<()> {
                         )
                         .unwrap_or(false)
             })
-        {
-            let path = entry.path();
-            info!("Generating workload for: {}", path.display());
-            let contents = fs::read_to_string(path)?;
+            .par_bridge()
+            .map(|entry| -> Result<_> {
+                let path = entry.path();
+                info!("Generating workload for: {}", path.display());
+                let contents = fs::read_to_string(path)?;
 
-            let output_file = spec_path_to_workload_name(path);
+                let output_file = spec_path_to_workload_name(path);
 
-            let mut output_file_path = output_dir.clone();
-            output_file_path.push(output_file);
+                let mut output_file_path = output_dir.clone();
+                output_file_path.push(output_file);
 
-            generate_workload(&contents, &output_file_path)?;
-        }
+                return generate_workload(&contents, &output_file_path);
+            })
+            .collect::<Result<Vec<_>>>()?;
     } else if workload_path.is_file() {
         let output_file = output
             .map(PathBuf::from)

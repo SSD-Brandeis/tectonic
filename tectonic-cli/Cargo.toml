@@ -10,3 +10,4 @@ walkdir = "2.5.0"
 tectonic = { path = "../tectonic/" }
 tracing-subscriber.workspace = true
 tracing.workspace = true
+rayon = "1.11.0"
