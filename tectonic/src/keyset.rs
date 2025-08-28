@@ -31,9 +31,8 @@ pub const fn fnv_hash(mut bytes: u64) -> u64 {
 }
 
 fn unbiased_index_(mut idx: usize, len: usize) -> usize {
-    let range = usize::MAX - usize::MAX % len; // largest multiple of len
+    let range = usize::MAX - usize::MAX % len;
     loop {
-        // hash step
         idx ^= idx >> 33;
         idx = idx.wrapping_mul(0xff51afd7ed558ccd);
         idx ^= idx >> 33;
@@ -43,10 +42,13 @@ fn unbiased_index_(mut idx: usize, len: usize) -> usize {
         if idx < range {
             return idx % len;
         }
-        // else retry with new idx (or re-hash)
     }
 }
 
+// TODO: How does this hold up when there are interleaved inserts? Are the same keys targed or does
+// it get "spread out".
+#[inline]
+#[must_use]
 fn unbiased_index(idx: usize, len: usize) -> usize {
     // return unbiased_index_(idx + 1, len + 1) - 1;
     return (fnv_hash(idx as u64) as usize) % len;
