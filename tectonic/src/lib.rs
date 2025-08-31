@@ -14,7 +14,7 @@ use std::io::{BufWriter, Write};
 use std::iter::repeat_n;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use tracing::debug;
+use tracing::{debug, info};
 
 mod keyset;
 pub mod spec;
@@ -30,7 +30,9 @@ pub mod spec;
 // - query point empty
 // - query range
 
-use crate::keyset::{Key, KeySet, VecOptionKeySet};
+use crate::keyset::{
+    Key, KeySet, VecBloomFilterKeySet, VecHashMapIndexKeySet, VecKeySet, VecOptionKeySet,
+};
 use crate::spec::{CharacterSet, RangeFormat, StringExpr, WorkloadSpec};
 
 struct AsciiOperationFormatter;
@@ -148,7 +150,30 @@ enum Op {
 /// Generates a workload given the spec and writes it to the given writer.
 pub fn write_operations(writer: &mut impl Write, workload: &WorkloadSpec) -> Result<()> {
     // write_operations_with_keyset(writer, workload, VecBloomFilterKeySet::new)
-    write_operations_with_keyset(writer, workload, VecOptionKeySet::new)
+    let has_nonempty_deletes = workload.has_delete_point() || workload.has_delete_range();
+    let has_sort_heavy = workload.has_update()
+        || workload.has_merge()
+        || workload.has_query_point()
+        || workload.has_query_range();
+
+    let has_contains_check = !workload.skip_contains_check_all()
+        && (workload.has_insert()
+            || workload.has_query_point_empty()
+            || workload.has_delete_point_empty());
+
+    return if (has_nonempty_deletes) && (has_sort_heavy) {
+        info!("Using VecOptionKeySet");
+        write_operations_with_keyset(writer, workload, VecOptionKeySet::new)
+    } else if has_nonempty_deletes {
+        info!("Using VecHashMapIndexKeySet");
+        write_operations_with_keyset(writer, workload, VecHashMapIndexKeySet::new)
+    } else if has_contains_check {
+        info!("Using VecBloomFilterKeySet");
+        write_operations_with_keyset(writer, workload, VecBloomFilterKeySet::new)
+    } else {
+        info!("Using VecKeySet");
+        write_operations_with_keyset(writer, workload, VecKeySet::new)
+    };
 }
 
 pub fn write_operations_with_keyset<KeySetT: KeySet>(

@@ -38,7 +38,6 @@ enum Command {
 fn main() -> Result<()> {
     let args = Cli::parse();
     tracing_subscriber::fmt()
-        // .with_env_filter(EnvFilter::new("debug"))
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 

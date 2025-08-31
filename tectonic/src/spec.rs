@@ -708,6 +708,80 @@ pub struct WorkloadSpecSection {
     pub skip_key_contains_check: bool,
 }
 
+impl WorkloadSpecSection {
+    fn has_insert(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .inserts
+                .as_ref()
+                .is_some_and(|is| is.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_update(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .updates
+                .as_ref()
+                .is_some_and(|us| us.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_merge(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .merges
+                .as_ref()
+                .is_some_and(|ms| ms.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_delete_point(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .point_deletes
+                .as_ref()
+                .is_some_and(|pds| pds.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_delete_point_empty(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .empty_point_deletes
+                .as_ref()
+                .is_some_and(|epds| epds.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_delete_range(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .range_deletes
+                .as_ref()
+                .is_some_and(|rds| rds.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_query_point(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .point_queries
+                .as_ref()
+                .is_some_and(|pqs| pqs.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_query_point_empty(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .empty_point_queries
+                .as_ref()
+                .is_some_and(|epqs| epqs.op_count.expected_value() > 0.)
+        });
+    }
+    fn has_query_range(&self) -> bool {
+        return self.groups.iter().any(|group| {
+            group
+                .range_queries
+                .as_ref()
+                .is_some_and(|rqs| rqs.op_count.expected_value() > 0.)
+        });
+    }
+}
 
 #[derive(serde::Deserialize, JsonSchema, Debug, Clone)]
 pub struct WorkloadSpec {
@@ -718,12 +792,57 @@ pub struct WorkloadSpec {
     pub character_set: Option<CharacterSet>,
 }
 
-// impl WorkloadSpec {
-//     pub fn operation_count(&self) -> usize {
-//         return self.sections.iter().map(|s| s.operation_count()).sum();
-//     }
-//
-//     pub fn bytes_count(&self) -> usize {
-//         return self.sections.iter().map(|s| s.bytes_count()).sum();
-//     }
-// }
+impl WorkloadSpec {
+    pub fn has_insert(&self) -> bool {
+        return self.sections.iter().any(WorkloadSpecSection::has_insert);
+    }
+    pub fn has_update(&self) -> bool {
+        return self.sections.iter().any(WorkloadSpecSection::has_update);
+    }
+    pub fn has_merge(&self) -> bool {
+        return self.sections.iter().any(WorkloadSpecSection::has_merge);
+    }
+    pub fn has_delete_point(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .any(WorkloadSpecSection::has_delete_point);
+    }
+    pub fn has_delete_point_empty(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .any(WorkloadSpecSection::has_delete_point_empty);
+    }
+    pub fn has_delete_range(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .any(WorkloadSpecSection::has_delete_range);
+    }
+    pub fn has_query_point(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .any(WorkloadSpecSection::has_query_point);
+    }
+    pub fn has_query_point_empty(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .any(WorkloadSpecSection::has_query_point_empty);
+    }
+    pub fn has_query_range(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .any(WorkloadSpecSection::has_query_range);
+    }
+
+    pub fn skip_contains_check_all(&self) -> bool {
+        return self
+            .sections
+            .iter()
+            .all(|section| section.skip_key_contains_check);
+    }
+}

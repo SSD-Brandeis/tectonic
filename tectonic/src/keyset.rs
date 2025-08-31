@@ -12,6 +12,8 @@ use std::rc::Rc;
 
 // pub type Key = Box<[u8]>;
 pub type Key = Rc<[u8]>;
+// TODO: Fix lifetime issue by maybe keeping the vec separate from the keysets so the lifetimes are
+// tied to it?
 
 // Modified from https://github.com/servo/rust-fnv/blob/main/lib.rs#L146-L157 (MIT)
 const INITIAL_STATE: u64 = 0xcbf2_9ce4_8422_2325;
@@ -234,6 +236,7 @@ impl KeySet for VecOptionKeySet {
         return self.keys.is_empty();
     }
 
+    // TODO: maybe this can be improved to binary search and then "fill a hole"
     fn push(&mut self, key: Key) {
         if self.sorted
             && self
@@ -264,6 +267,8 @@ impl KeySet for VecOptionKeySet {
         // FIXME: This is technically incorrect, because the range could contain `None` values.
         // Never more than VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 % of the keys tho, so
         // it might be ok.
+        // We can maybe do better with a while loop, using Option::take, and then call
+        // maybe_flatten_in_place.
         let mut drain = self.keys.drain(idx_range.clone()).flatten();
         let key1 = drain.next().expect("to have at least one element");
         let (key1, key2) = match drain.next_back() {
@@ -293,6 +298,7 @@ impl KeySet for VecOptionKeySet {
         panic!("Called get on an empty keyset");
     }
 
+    // TODO: this can be binary search if it is sorted
     fn contains(&self, key: &Key) -> bool {
         return self.keys.iter().any(|k| k.as_ref() == Some(key));
     }
@@ -446,6 +452,7 @@ pub struct VecHashMapIndexKeySet {
     sorted: bool,
 }
 
+// TODO: Is this keyset useless because we always need to sort when doing a point delete?
 impl KeySet for VecHashMapIndexKeySet {
     fn new(capacity: usize) -> Self {
         return Self {
@@ -519,6 +526,7 @@ impl KeySet for VecHashMapIndexKeySet {
             for (i, key) in self.keys.iter().enumerate() {
                 self.key_to_index.insert(key.clone(), i);
             }
+            self.sorted = true;
         }
     }
 }
