@@ -7,18 +7,8 @@
         {
           "inserts": {
             "op_count": 4000000,
-            "key": {
-              "uniform": {
-                "len": 128,
-                "character_set": "alphanumeric"
-              }
-            },
-            "val": {
-              "uniform": {
-                "len": 128,
-                "character_set": "alphanumeric"
-              }
-            }
+            "key": { "uniform": { "len": 128 } },
+            "val": { "uniform": { "len": 128 } }
           },
           "point_queries": {
             "op_count": 5000000
@@ -35,18 +25,8 @@
         {
           "inserts": {
             "op_count": 1000000,
-            "key": {
-              "uniform": {
-                "len": 128,
-                "character_set": "alphanumeric"
-              }
-            },
-            "val": {
-              "uniform": {
-                "len": 128,
-                "character_set": "alphanumeric"
-              }
-            }
+            "key": { "uniform": { "len": 128 } },
+            "val": { "uniform": { "len": 128 } }
           },
           "point_queries": {
             "op_count": 7000000
