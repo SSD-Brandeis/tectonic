@@ -14,7 +14,7 @@ use std::io::{BufWriter, Write};
 use std::iter::repeat_n;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 
 mod keyset;
 pub mod spec;
@@ -366,7 +366,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             is.character_set.or(character_set),
                         )?;
                         keys_valid.push(key);
-                        time_insert += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_insert += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::Update => {
                         let start = Instant::now();
@@ -385,7 +389,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             &us.val,
                             us.character_set.or(character_set),
                         )?;
-                        time_update += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_update += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::Merge => {
                         let start = Instant::now();
@@ -404,7 +412,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                             &ms.val,
                             ms.character_set.or(character_set),
                         )?;
-                        time_merge += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_merge += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::PointDelete => {
                         let start = Instant::now();
@@ -415,7 +427,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         let key = keys_valid.remove_random(rng_ref, &pds.selection);
 
                         AsciiOperationFormatter::write_point_delete(writer, &key)?;
-                        time_delete_point += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_delete_point += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::PointQuery => {
                         let start = Instant::now();
@@ -428,7 +444,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         // keys_valid.sort();
                         let key = keys_valid.get_random(rng_ref, &pqs.selection);
                         AsciiOperationFormatter::write_point_query(writer, key)?;
-                        time_query_point += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_query_point += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::PointDeleteEmpty => {
                         let start = Instant::now();
@@ -445,7 +465,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         };
 
                         AsciiOperationFormatter::write_point_delete(writer, &key)?;
-                        time_delete_point_empty += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_delete_point_empty += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::EmptyPointQuery => {
                         let start = Instant::now();
@@ -461,7 +485,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                         };
 
                         AsciiOperationFormatter::write_point_query(writer, &key)?;
-                        time_query_point_empty += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_query_point_empty += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::RangeQuery => {
                         let start = Instant::now();
@@ -492,7 +520,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                                 AsciiOperationFormatter::write_range_query(writer, key1, key2)?
                             }
                         }
-                        time_query_range += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_query_range += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                     Op::RangeDelete => {
                         let start = Instant::now();
@@ -523,7 +555,11 @@ pub fn write_operations_with_keyset<KeySetT: KeySet>(
                                 AsciiOperationFormatter::write_range_delete(writer, key1, key2)?
                             }
                         }
-                        time_delete_range += Instant::now().duration_since(start);
+                        let duration = Instant::now().duration_since(start);
+                        time_delete_range += duration;
+                        if duration > Duration::from_millis(1) {
+                            trace!(?marker, ?duration);
+                        }
                     }
                 }
             }

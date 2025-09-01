@@ -190,6 +190,7 @@ impl KeySet for VecKeySet {
 
 pub struct VecOptionKeySet {
     keys: Vec<Option<Key>>,
+    set: HashSet<Key>,
     sorted: bool,
     none_count: usize,
 }
@@ -210,7 +211,7 @@ impl VecOptionKeySet {
     fn maybe_remove(&mut self, idx: usize) -> Option<Key> {
         let key = self.keys[idx].take()?;
         self.none_count += 1;
-        self.maybe_flatten_in_place();
+        // self.maybe_flatten_in_place();
         return Some(key);
     }
 
@@ -223,6 +224,7 @@ impl KeySet for VecOptionKeySet {
     fn new(capacity: usize) -> Self {
         return Self {
             keys: Vec::with_capacity(capacity),
+            set: HashSet::with_capacity(capacity),
             sorted: true,
             none_count: 0,
         };
@@ -246,6 +248,7 @@ impl KeySet for VecOptionKeySet {
         {
             self.sorted = false;
         }
+        self.set.insert(key.clone());
         self.keys.push(Some(key));
     }
 
@@ -253,6 +256,8 @@ impl KeySet for VecOptionKeySet {
         for _ in 0..self.keys.len() {
             match self.maybe_remove(idx) {
                 Some(key) => {
+                    self.set.remove(&key);
+                    self.maybe_flatten_in_place();
                     return key;
                 }
                 None => {
@@ -264,25 +269,41 @@ impl KeySet for VecOptionKeySet {
     }
 
     fn remove_range(&mut self, idx_range: Range<usize>) -> (Key, Key) {
-        // FIXME: This is technically incorrect, because the range could contain `None` values.
-        // Never more than VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 % of the keys tho, so
-        // it might be ok.
-        // We can maybe do better with a while loop, using Option::take, and then call
-        // maybe_flatten_in_place.
-        let mut drain = self.keys.drain(idx_range.clone()).flatten();
-        let key1 = drain.next().expect("to have at least one element");
-        let (key1, key2) = match drain.next_back() {
-            Some(key2) => (key1, key2),
-            None => (key1.clone(), key1),
-        };
+        let mut key1 = None;
+        let mut key2 = None;
+        for idx in idx_range {
+            if let Some(key) = self.maybe_remove(idx) {
+                self.set.remove(&key);
+                key1 = key1.or(Some(key.clone()));
+                key2 = Some(key);
+            }
+        }
 
-        let some_count = drain.count() + 2;
-        let none_count = idx_range.len() - some_count;
-        self.none_count += none_count;
         self.maybe_flatten_in_place();
 
-        return (key1, key2);
+        return (key1.expect("to not be none"), key2.expect("to not be none"));
     }
+
+    // fn remove_range(&mut self, idx_range: Range<usize>) -> (Key, Key) {
+    //     // FIXME: This is technically incorrect, because the range could contain `None` values.
+    //     // Never more than VEC_OPTION_KEY_SET_FILTER_THRESHOLD*100 % of the keys tho, so
+    //     // it might be ok.
+    //     // We can maybe do better with a while loop, using Option::take, and then call
+    //     // maybe_flatten_in_place.
+    //     let mut drain = self.keys.drain(idx_range.clone()).flatten();
+    //     let key1 = drain.next().expect("to have at least one element");
+    //     let (key1, key2) = match drain.next_back() {
+    //         Some(key2) => (key1, key2),
+    //         None => (key1.clone(), key1),
+    //     };
+    //
+    //     let some_count = drain.count() + 2;
+    //     let none_count = idx_range.len() - some_count;
+    //     self.none_count += none_count;
+    //     self.maybe_flatten_in_place();
+    //
+    //     return (key1, key2);
+    // }
 
     fn get(&self, mut idx: usize) -> &Key {
         for _ in 0..self.keys.len() {
@@ -300,7 +321,8 @@ impl KeySet for VecOptionKeySet {
 
     // TODO: this can be binary search if it is sorted
     fn contains(&self, key: &Key) -> bool {
-        return self.keys.iter().any(|k| k.as_ref() == Some(key));
+        return self.set.contains(key);
+        // return self.keys.iter().any(|k| k.as_ref() == Some(key));
     }
 
     fn sort(&mut self) {
