@@ -19,9 +19,9 @@ cargo run --release
 ```bash
 ./tectonic-cli schema > workload_schema.json
 
-./tectonic-cli generate -w workload_spec.json
+./tectonic-cli generate -w workload.spec.json
 # or
-./tectonic-cli generate -w workload_spec.json -o workload_outputs/
+./tectonic-cli generate -w workload.spec.json -o workload_outputs/
 # or
 ./tectonic-cli generate -w workload_specs/ -o workload_outputs/
 ```
